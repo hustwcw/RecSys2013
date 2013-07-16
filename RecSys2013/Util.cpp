@@ -80,6 +80,8 @@ void analyzeDataSet()
             }
         }
     }
+    finTest.close();
+    
     cout << "U&B: " << UBcount << endl;
     cout << "Only U: " << Ucount << endl;
     cout << "Only B: " << Bcount << endl;
