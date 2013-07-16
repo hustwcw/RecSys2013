@@ -11,13 +11,15 @@
 
 #include <iostream>
 
+void dosome(int x);
+
 class BasicPMF {
-    float lamda = 0.001;
-    float sparsity = 0.05;
-    int latentDim = 10;
-    float learnRate = 0.0045;
-    int maxIterNum = 24;
-    float iterThreshold = 0.005;
+//    float lamda = 0.001;
+//    float sparsity = 0.05;
+//    int latentDim = 10;
+//    float learnRate = 0.0045;
+//    int maxIterNum = 24;
+//    float iterThreshold = 0.005;
     
     
 public:

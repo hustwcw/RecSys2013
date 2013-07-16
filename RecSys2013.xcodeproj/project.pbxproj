@@ -10,6 +10,7 @@
 		BB4D093317864F05002107F6 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BB4D093217864F05002107F6 /* main.cpp */; };
 		BB4D093517864F05002107F6 /* RecSys2013.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = BB4D093417864F05002107F6 /* RecSys2013.1 */; };
 		BB4D0941178986E6002107F6 /* BasicPMF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BB4D093F178986E6002107F6 /* BasicPMF.cpp */; };
+		BB90EDE217951EF20023546F /* Util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BB90EDE017951EF20023546F /* Util.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -31,6 +32,9 @@
 		BB4D093417864F05002107F6 /* RecSys2013.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = RecSys2013.1; sourceTree = "<group>"; };
 		BB4D093F178986E6002107F6 /* BasicPMF.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BasicPMF.cpp; sourceTree = "<group>"; };
 		BB4D0940178986E6002107F6 /* BasicPMF.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BasicPMF.h; sourceTree = "<group>"; };
+		BB4D094217899BB8002107F6 /* SparseMatrix.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SparseMatrix.h; sourceTree = "<group>"; };
+		BB90EDE017951EF20023546F /* Util.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Util.cpp; sourceTree = "<group>"; };
+		BB90EDE117951EF20023546F /* Util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Util.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -67,6 +71,9 @@
 				BB4D093417864F05002107F6 /* RecSys2013.1 */,
 				BB4D093F178986E6002107F6 /* BasicPMF.cpp */,
 				BB4D0940178986E6002107F6 /* BasicPMF.h */,
+				BB4D094217899BB8002107F6 /* SparseMatrix.h */,
+				BB90EDE017951EF20023546F /* Util.cpp */,
+				BB90EDE117951EF20023546F /* Util.h */,
 			);
 			path = RecSys2013;
 			sourceTree = "<group>";
@@ -124,6 +131,7 @@
 			files = (
 				BB4D093317864F05002107F6 /* main.cpp in Sources */,
 				BB4D0941178986E6002107F6 /* BasicPMF.cpp in Sources */,
+				BB90EDE217951EF20023546F /* Util.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -149,6 +157,7 @@
 					"$(inherited)",
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_VERSION = "";
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
@@ -172,6 +181,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_VERSION = "";
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
@@ -205,7 +215,7 @@
 				BB4D093717864F05002107F6 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		BB4D093817864F05002107F6 /* Build configuration list for PBXNativeTarget "RecSys2013" */ = {
 			isa = XCConfigurationList;
@@ -214,6 +224,7 @@
 				BB4D093A17864F05002107F6 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};

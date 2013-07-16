@@ -7,16 +7,24 @@
 //
 
 #include <iostream>
+#include <fstream>
+#include <set>
+
+#include "BasicPMF.h"
+#include "Util.h"
 
 
 using namespace std;
 
 
 
+
+
 int main(int argc, const char * argv[])
 {
+    analyzeDataSet();
 
-
+    
     return 0;
 }
 
