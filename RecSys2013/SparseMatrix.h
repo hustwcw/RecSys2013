@@ -9,18 +9,28 @@
 #ifndef RecSys2013_SparseMatrix_h
 #define RecSys2013_SparseMatrix_h
 
-#define MAXSIZE     230000
-
 
 typedef struct{
     int i, j;
     float rating;
 }Triple;
 
-typedef struct
+struct SparseMatrix
 {
-    Triple data[MAXSIZE+1]; // 非零元三元组表，data[0]未用。以行序为主序进行排列
+    Triple *data; // 非零元三元组表，以行序或者为主序进行排列
     int *rpos;
     int mu, nu, tu; // 矩阵的行数，列数，非零元素的个数
-}SparseMatrix;
+    
+    SparseMatrix(int size, int rowCount)
+    {
+        data = new Triple[size];
+        rpos = new int[rowCount+1]; // 最后一个表示数组结尾的下一个位置
+    }
+    
+    ~SparseMatrix()
+    {
+        delete[] data;
+        delete[] rpos;
+    }
+};
 #endif
