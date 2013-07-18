@@ -193,7 +193,6 @@ int main(int argc, const char * argv[])
         // 真的iter1用户，找出所有需要预测的business
         pair<multimap<string, string>::iterator, multimap<string, string>::iterator> ret = predictionMap.equal_range(iter1->first);
         for (multimap<string, string>::iterator rangeIter = ret.first; rangeIter != ret.second; ++rangeIter) {
-            cout << rangeIter->second << endl;
             map<string, int>::iterator businessIter = businessMap.find(rangeIter->second);
             if (businessIter == businessMap.end()) {
                 continue;
@@ -214,7 +213,13 @@ int main(int argc, const char * argv[])
             }
             float predictStar = userMap.find(rangeIter->first)->second.avgStar + (nominator/denominator);
             cout << predictStar << endl;
+            // 将计算结果插入到result中
+            result.insert(make_pair(rangeIter->first+","+rangeIter->second, predictStar));
         }
+    }
+    
+    for (map<string, float>::iterator iter = result.begin(); iter != result.end(); ++iter) {
+        cout << iter->first << "," << iter->second << endl;
     }
     cout << "user count: " << userCount << "\nbusiness count: " << businessCount << endl;
     
