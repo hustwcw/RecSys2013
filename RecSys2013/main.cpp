@@ -132,10 +132,9 @@ int main(int argc, const char * argv[])
     
     // 对于每个用户，都计算他与其他用户的相似度
     int row = 0;
-    int simCount = 0;
     for (map<string, User>::iterator iter1 = userMap.begin(); iter1 != userMap.end(); ++iter1) {
         cout << ++row << ": ";
-        simCount = 0;
+        map<string, float> simMap; // uid-sim Map
         for (map<string, User>::iterator iter2 = userMap.begin(); iter2 != userMap.end(); ++iter2) {
             if (iter2 == iter1) {
                 continue;
@@ -184,12 +183,38 @@ int main(int argc, const char * argv[])
                 float weight = (2.0 * intersectCount / (iter1->second.reviewCount + iter2->second.reviewCount));
                 float sim = weight * (nominator/(sqrt(denominator1) * sqrt(denominator2)));
 //                cout << sim << endl;
-                simCount++;
+                simMap.insert(make_pair(iter2->first, sim));
             }
             // 对所有计算出来的用户的相似度进行排序，选取其中最大的K个相似度做该用户的评分预测
             // 需要预测的business可以从predictionMap中找到
         }
-        cout << simCount << endl;
+        cout << simMap.size() << endl;
+
+        // 真的iter1用户，找出所有需要预测的business
+        pair<multimap<string, string>::iterator, multimap<string, string>::iterator> ret = predictionMap.equal_range(iter1->first);
+        for (multimap<string, string>::iterator rangeIter = ret.first; rangeIter != ret.second; ++rangeIter) {
+            cout << rangeIter->second << endl;
+            map<string, int>::iterator businessIter = businessMap.find(rangeIter->second);
+            if (businessIter == businessMap.end()) {
+                continue;
+            }
+            int col = businessIter->second;
+            float nominator = 0;
+            float denominator = 0;
+            for (map<string, float>::iterator simIter = simMap.begin(); simIter != simMap.end(); ++simIter) {
+                map<string, User>::iterator userIter = userMap.find(simIter->first);
+                int row = userIter->second.sequence;
+//                float uaStar = sparseM.data[sparseM.rpos[row]+]
+                float uaStar = rateMatrix[row][col];
+                if (uaStar <= 0) {
+                    continue;
+                }
+                nominator += (simIter->second * (uaStar - userIter->second.avgStar));
+                denominator += simIter->second;
+            }
+            float predictStar = userMap.find(rangeIter->first)->second.avgStar + (nominator/denominator);
+            cout << predictStar << endl;
+        }
     }
     cout << "user count: " << userCount << "\nbusiness count: " << businessCount << endl;
     
