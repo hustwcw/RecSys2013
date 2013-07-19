@@ -31,7 +31,6 @@
 using namespace std;
 
 
-float rateMatrix[UserSize][BusinessSize];
 
 
 struct User {
@@ -44,12 +43,14 @@ struct User {
 };
 int main(int argc, const char * argv[])
 {
+    static float rateMatrix[UserSize][BusinessSize];
+
     //analyzeDataSet();
     ifstream trainingReviewFile = ifstream("/Users/jtang1/Desktop/2013/yelp_training_set/yelp_training_set_review.json");
     ifstream submitionFile = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
     map<string, User> userMap;
     map<string, int> businessMap;
-    multimap<string, string> predictionMap;
+    multimap<string, string> predictionMap;     // 需要预测的uid和bid
     map<string, float> result;  // 评分预测结果，key为uid与bid的连接
     
     // 将需要预测的数据读入predictionMap
