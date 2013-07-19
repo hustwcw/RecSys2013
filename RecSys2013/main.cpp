@@ -41,10 +41,36 @@ struct User {
     :sequence(theSequence), avgStar(theAvgStar), reviewCount(theReviewCount)
     {}
 };
+
+struct Review {
+    string uid;
+    string bid;
+    float star;
+    
+    Review(string u, string b, float s)
+    :uid(u), bid(b), star(s)
+    {}
+    
+    bool operator < (const Review &other) const
+    {
+        if (uid < other.uid || (uid == other.uid && bid < other.bid)) {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    
+    bool operator == (const Review &other) const
+    {
+        return (uid == other.uid && bid == other.bid);
+    }
+};
+
+
 int main(int argc, const char * argv[])
 {
-    static float rateMatrix[UserSize][BusinessSize];
-
     //analyzeDataSet();
     ifstream trainingReviewFile = ifstream("/Users/jtang1/Desktop/2013/yelp_training_set/yelp_training_set_review.json");
     ifstream submitionFile = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
@@ -65,79 +91,78 @@ int main(int argc, const char * argv[])
         }
     }
     
-    // initialize the matrix with 0.0
-    for (int i = 0; i < UserSize; i++) {
-        for (int j = 0; j < BusinessSize; j++) {
-            rateMatrix[i][j] = 0.0;
-        }
-    }
-    int userCount = 0;
-    int businessCount = 0;
-    int reviewCount = 0;
+    // 对于training_set_review根据uid和bid进行排序，便于直接生成稀疏矩阵
+    set<Review> reviewSet;
     if (trainingReviewFile.is_open()) {
         while (!trainingReviewFile.eof()) {
             string line;
-            int row, col;
             getline(trainingReviewFile, line);
             if (line.length() <= 0) {
                 continue;
             }
-            size_t start = line.find("\"user_id\": \"");
-            string uid;
-            uid = line.substr(start+12, 22);
-            start = line.find("\"business_id\": \"");
-            string bid = line.substr(start+16, 22);
-            start = line.find("\"stars\"");
+            size_t start = line.find("\"user_id\":", 48);
+            string uid = line.substr(start+12, 22);
+            string bid = line.substr(line.length() - 24, 22);
+            start = line.find("\"stars\"", 124);
             float stars = (float)atoi(line.substr(start+9, 1).c_str());
             
             map<string, User>::iterator iter;
             if ((iter = userMap.find(uid)) == userMap.end()) {
-                row = userCount;
-                userMap.insert(make_pair(uid, User(userCount, stars, 1)));
-                userCount++;
+                userMap.insert(make_pair(uid, User(0, stars, 1)));
             }
             else
             {
-                row = iter->second.sequence;
-                iter->second.reviewCount++;
+                ++(iter->second.reviewCount);
                 iter->second.avgStar = (iter->second.avgStar * (iter->second.reviewCount-1) + stars)/iter->second.reviewCount;
             }
             
             map<string, int>::iterator iter2;
             if ((iter2 = businessMap.find(bid)) == businessMap.end()) {
-                col = businessCount;
-                businessMap.insert(make_pair(bid, businessCount++));
+                businessMap.insert(make_pair(bid, 0));
             }
             else
             {
-                col = iter2->second;
+                ;
             }
             
-            rateMatrix[row][col] = stars;
-            reviewCount++;
+            reviewSet.insert(Review(uid, bid, stars));
         }
     }
     
-    // 根据rateMatrix生成稀疏矩阵
-    SparseMatrix sparseM(reviewCount, userCount);
-    int index = 0;
-    for (int i = 0; i < userCount; i++) {
-        sparseM.rpos[i] = index;
-        for (int j = 0; j < businessCount; j++) {
-            if (rateMatrix[i][j] != 0) {
-                sparseM.data[index++] = {i, j, rateMatrix[i][j]};
-            }
-        }
+    // 根据用户ID的字符串顺序调整用户在矩阵中的位置
+    int sequence = 0;
+    for (map<string, User>::iterator iter = userMap.begin(); iter != userMap.end(); ++iter) {
+        iter->second.sequence = sequence++;
     }
-    sparseM.rpos[userCount] = reviewCount;
+    // 根据商家ID的字符串顺序调整商家在矩阵中的位置
+    sequence = 0;
+    for (map<string, int>::iterator iter = businessMap.begin(); iter != businessMap.end(); ++iter) {
+        iter->second = sequence++;
+    }
+    
+    
+    // 根据reviewSet生成稀疏矩阵
+    SparseMatrix<float> sparseM(static_cast<int>(reviewSet.size()), static_cast<int>(userMap.size()), static_cast<int>(businessMap.size()));
+    int index = 0;
+    int lastRow = -1;
+    for (set<Review>::iterator iter = reviewSet.begin(); iter != reviewSet.end(); ++iter) {
+        int row = userMap.find(iter->uid)->second.sequence;
+        if (row != lastRow) {
+            sparseM.rpos[row] = index;
+        }
+        int col = businessMap.find(iter->bid)->second;
+        sparseM.data[index++] = {row, col, iter->star};
+        lastRow = row;
+    }
+    sparseM.rpos[lastRow+1] = index;
     
     // 对于每个用户，都计算他与其他用户的相似度
     int row = 0;
-    for (map<string, User>::iterator iter1 = userMap.begin(); iter1 != userMap.end(); ++iter1) {
+    for (map<string, User>::iterator userIter1 = userMap.begin(); userIter1 != userMap.end(); ++userIter1) {
         cout << ++row << ": ";
         map<string, float> simMap; // uid-sim Map
-        for (map<string, User>::iterator iter2 = userMap.begin(); iter2 != userMap.end(); ++iter2) {
-            if (iter2 == iter1) {
+        for (map<string, User>::iterator userIter2 = userMap.begin(); userIter2 != userMap.end(); ++userIter2) {
+            if (userIter2 == userIter1) {
                 continue;
             }
             // 计算iter1和iter2的相似度
@@ -145,18 +170,18 @@ int main(int argc, const char * argv[])
             float denominator1 = 0.0f;
             float denominator2 = 0.0f;
             int intersectCount = 0;
-            int row1 = iter1->second.sequence;
-            int row2 = iter2->second.sequence;
+            int row1 = userIter1->second.sequence;
+            int row2 = userIter2->second.sequence;
             int i = sparseM.rpos[row1];
             int j = sparseM.rpos[row2];
             for (; i < sparseM.rpos[row1+1] && j < sparseM.rpos[row2+1]; ) {
                 if (sparseM.data[i].j == sparseM.data[j].j) {
                     // 列号相同，计算相似度
-                    float tempa = sparseM.data[i].rating - iter1->second.avgStar;
-                    float tempu = sparseM.data[j].rating - iter2->second.avgStar;
+                    float tempa = sparseM.data[i].elem - userIter1->second.avgStar;
+                    float tempu = sparseM.data[j].elem - userIter2->second.avgStar;
                     nominator += tempa * tempu;
-                    denominator1 = tempa * tempa;
-                    denominator2 = tempu * tempu;
+                    denominator1 += tempa * tempa;
+                    denominator2 += tempu * tempu;
                     intersectCount++;
                     i++;
                     j++;
@@ -170,31 +195,23 @@ int main(int argc, const char * argv[])
                     j++;
                 }
             }
-//            for (int i = 0; i < BusinessSize; ++i) {
-//                if (rateMatrix[row1][i]!=0 && rateMatrix[row2][i]!=0) {
-//                    float tempa = rateMatrix[row1][i] - iter1->second.avgStar;
-//                    float tempu = rateMatrix[row2][i] - iter2->second.avgStar;
-//                    nominator += tempa * tempu;
-//                    denominator1 += tempa * tempa;
-//                    denominator2 += tempu * tempu;
-//                    intersectCount++;
-//                }
-//            }
+            
             if (nominator > 0 && denominator1 > 0 && denominator2 > 0) {
-                float weight = (2.0 * intersectCount / (iter1->second.reviewCount + iter2->second.reviewCount));
-                float sim = weight * (nominator/(sqrt(denominator1) * sqrt(denominator2)));
+                float weight = (2.0 * intersectCount / (userIter1->second.reviewCount + userIter2->second.reviewCount));
+                float sim = weight * (nominator/(sqrt(denominator1 * denominator2)));
 //                cout << sim << endl;
-                simMap.insert(make_pair(iter2->first, sim));
+                simMap.insert(make_pair(userIter2->first, sim));
             }
             // 对所有计算出来的用户的相似度进行排序，选取其中最大的K个相似度做该用户的评分预测
             // 需要预测的business可以从predictionMap中找到
         }
         cout << simMap.size() << endl;
 
-        // 真的iter1用户，找出所有需要预测的business
-        pair<multimap<string, string>::iterator, multimap<string, string>::iterator> ret = predictionMap.equal_range(iter1->first);
+        // 针对userIter1用户，找出所有需要预测的business
+        pair<multimap<string, string>::iterator, multimap<string, string>::iterator> ret = predictionMap.equal_range(userIter1->first);
         for (multimap<string, string>::iterator rangeIter = ret.first; rangeIter != ret.second; ++rangeIter) {
             map<string, int>::iterator businessIter = businessMap.find(rangeIter->second);
+            // 需要预测的business不在训练集中
             if (businessIter == businessMap.end()) {
                 continue;
             }
@@ -204,25 +221,28 @@ int main(int argc, const char * argv[])
             for (map<string, float>::iterator simIter = simMap.begin(); simIter != simMap.end(); ++simIter) {
                 map<string, User>::iterator userIter = userMap.find(simIter->first);
                 int row = userIter->second.sequence;
-//                float uaStar = sparseM.data[sparseM.rpos[row]+]
-                float uaStar = rateMatrix[row][col];
+                float uaStar = sparseM.getElem(row, col);
+                // 有相似度的用户对于该要预测的商家没有过review
                 if (uaStar <= 0) {
                     continue;
                 }
                 nominator += (simIter->second * (uaStar - userIter->second.avgStar));
                 denominator += simIter->second;
             }
-            float predictStar = userMap.find(rangeIter->first)->second.avgStar + (nominator/denominator);
-            cout << predictStar << endl;
-            // 将计算结果插入到result中
-            result.insert(make_pair(rangeIter->first+","+rangeIter->second, predictStar));
+            
+            if (nominator > 0 && denominator > 0) {
+                float predictStar = userMap.find(rangeIter->first)->second.avgStar + (nominator/denominator);
+                // 将计算结果插入到result中
+                result.insert(make_pair(rangeIter->first+","+rangeIter->second, predictStar));
+            }
         }
     }
     
+    int temp = 0;
     for (map<string, float>::iterator iter = result.begin(); iter != result.end(); ++iter) {
-        cout << iter->first << "," << iter->second << endl;
+        cout << temp++ << ": " << iter->first << "," << iter->second << endl;
     }
-    cout << "user count: " << userCount << "\nbusiness count: " << businessCount << endl;
+
     
     return 0;
 }

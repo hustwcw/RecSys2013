@@ -22,7 +22,8 @@ struct SparseMatrix
     int *rpos;
     int mu, nu, tu; // 矩阵的行数，列数，非零元素的个数
     
-    SparseMatrix(int size, int rowCount)
+    SparseMatrix(int size, int rowCount, int colCount)
+    :mu(rowCount), nu(colCount), tu(size)
     {
         data = new Triple<T>[size];
         rpos = new int[rowCount+1]; // 最后一个表示数组结尾的下一个位置
