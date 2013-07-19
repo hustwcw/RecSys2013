@@ -16,16 +16,12 @@
 #include <list>
 #include <algorithm>
 #include <cmath>
-
+#include <sstream>
 
 #include "BasicPMF.h"
 #include "Util.h"
 #include "SparseMatrix.h"
 
-#define UserSize        (43873+3000)        // 45981
-#define BusinessSize    (11537)
-#define ReviewSize      229907
-#define TOPK            200
 
 
 using namespace std;
@@ -37,6 +33,8 @@ struct User {
     int sequence;
     float avgStar;
     int reviewCount;
+    float confident;
+    
     User(int theSequence, float theAvgStar, int theReviewCount)
     :sequence(theSequence), avgStar(theAvgStar), reviewCount(theReviewCount)
     {}
@@ -46,6 +44,7 @@ struct Business {
     int sequence;
     float avgStar;
     int reviewCount;
+    float confident;
     
     Business(int theSequence, float theAvgStar, int theReviewCount)
     :sequence(theSequence), avgStar(theAvgStar), reviewCount(theReviewCount)
@@ -81,13 +80,15 @@ struct Review {
 
 
 ifstream trainingReviewFile = ifstream("/Users/jtang1/Desktop/2013/yelp_training_set/yelp_training_set_review.json");
-ifstream submitionFile = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
+ifstream submitionFile1 = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
+ifstream submitionFile2 = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
+ofstream predictionFile = ofstream("/Users/jtang1/Desktop/2013/prediction.csv");
 multimap<string, string> predictionMap;     // 需要预测的uid和bid
 map<string, float> result;  // 评分预测结果，key为uid与bid的连接
 map<string, User> userMap;
 map<string, Business> businessMap;
 SparseMatrix<float> *sparseM;
-
+float lamda = 0.4;
 
 void generateMatrix()
 {
@@ -212,6 +213,17 @@ void UPCC()
             // 需要预测的business可以从predictionMap中找到
         }
         
+        // 根据simMap计算User的confident weight
+        float simSum = 0;
+        float nominator = 0;
+        for (map<string, float>::iterator iter = simMap.begin(); iter != simMap.end(); ++iter) {
+            simSum += iter->second;
+        }
+        for (map<string, float>::iterator iter = simMap.begin(); iter != simMap.end(); ++iter) {
+            nominator += (iter->second) * (iter->second);
+        }
+        userIter1->second.confident = nominator/simSum;
+        
         // 针对userIter1用户，找出所有需要预测的business
         pair<multimap<string, string>::iterator, multimap<string, string>::iterator> ret = predictionMap.equal_range(userIter1->first);
         for (multimap<string, string>::iterator rangeIter = ret.first; rangeIter != ret.second; ++rangeIter) {
@@ -314,6 +326,17 @@ void IPCC()
                 simMap.insert(make_pair(businessIter2->first, sim));
             }
         }
+        // 根据simMap计算Business的confident weight
+        float simSum = 0;
+        float nominator = 0;
+        for (map<string, float>::iterator iter = simMap.begin(); iter != simMap.end(); ++iter) {
+            simSum += iter->second;
+        }
+        for (map<string, float>::iterator iter = simMap.begin(); iter != simMap.end(); ++iter) {
+            nominator += (iter->second) * (iter->second);
+        }
+        businessIter1->second.confident = nominator/simSum;
+        
         
         // 针对businessIter1用户，找出所有需要预测的user
         for (multimap<string, string>::iterator predictionIter = predictionMap.begin(); predictionIter != predictionMap.end(); ++predictionIter)
@@ -345,7 +368,7 @@ void IPCC()
             if (nominator > 0 && denominator > 0) {
                 float predictStar = businessMap.find(predictionIter->second)->second.avgStar + (nominator/denominator);
                 // 将计算结果插入到result中
-                result.insert(make_pair(predictionIter->first+","+predictionIter->second, predictStar));
+                result.insert(make_pair(predictionIter->second+","+predictionIter->first, predictStar));
             }
         }
     }
@@ -356,28 +379,121 @@ int main(int argc, const char * argv[])
 {
     //analyzeDataSet();
     // 将需要预测的数据读入predictionMap
-    if (submitionFile.is_open()) {
+    if (submitionFile1.is_open())
+    {
         string line;
-        getline(submitionFile, line);
-        while (!submitionFile.eof()) {
-            getline(submitionFile, line);
+        getline(submitionFile1, line);
+        while (!submitionFile1.eof())
+        {
+            getline(submitionFile1, line);
             string uid = line.substr(0, 22);
             string bid = line.substr(23, 22);
             predictionMap.insert(make_pair(uid, bid));
         }
     }
-    
+    submitionFile1.close();
     // 生成稀疏矩阵
     generateMatrix();
-//    UPCC();
+    UPCC();
     IPCC();
     delete sparseM;
     
-    int temp = 0;
-    for (map<string, float>::iterator iter = result.begin(); iter != result.end(); ++iter) {
-        cout << temp++ << ": " << iter->first << "," << iter->second << endl;
+//    int temp = 0;
+//    for (map<string, float>::iterator iter = result.begin(); iter != result.end(); ++iter) {
+//        cout << temp++ << ": " << iter->first << "," << iter->second << endl;
+//    }
+    // 根据result和UserMap、BusinessMap中的评分平均值计算最终的评分
+    if (submitionFile2.is_open())
+    {
+        string line;
+        getline(submitionFile2, line);
+        int index = 0;
+        while (!submitionFile2.eof())
+        {
+            getline(submitionFile2, line);
+            string uid = line.substr(0, 22);
+            string bid = line.substr(23, 22);
+            map<string, User>::iterator userIter = userMap.find(uid);
+            map<string, Business>::iterator businessIter = businessMap.find(bid);
+            map<string, float>::iterator userResultIter = result.find(uid+bid);
+            map<string, float>::iterator busiResultIter = result.find(bid+uid);
+            float upcc, ipcc;
+            float prediction;
+            bool userInTraining = true;
+            bool businessInTraining = true;
+            
+            if (userResultIter != result.end()) {
+                upcc = userResultIter->second;
+            }
+            else
+            {
+                if (userIter != userMap.end()) {
+                    upcc = userIter->second.avgStar;
+                }
+                else
+                {
+                    // 该用户不在训练集中
+                    userInTraining = false;
+                }
+            }
+            
+            if (busiResultIter != result.end()) {
+                ipcc = userResultIter->second;
+            }
+            else
+            {
+                if (businessIter != businessMap.end()) {
+                    ipcc = businessIter->second.avgStar;
+                }
+                else
+                {
+                    // 该商家不在训练集中
+                    businessInTraining = false;
+                }
+            }
+            
+            if (userInTraining && businessInTraining) {
+                // 都在训练集中
+                float wu, wi;
+                float conu = userIter->second.confident;
+                float coni = businessIter->second.confident;
+                if (conu == 0 || coni == 0) {
+                    wu = lamda;
+                    wi = 1-lamda;
+                }
+                else
+                {
+                    wu = (conu * lamda) / (conu*lamda + coni*(1-lamda));
+                    wi = (coni * (1-lamda)) / (conu*lamda + coni*(1-lamda));
+                }
+                prediction = wu * upcc + wi *ipcc;
+            }
+            else if (userInTraining)
+            {
+                // 只有用户在训练集中
+                prediction = userIter->second.avgStar;
+            }
+            else if (businessInTraining)
+            {
+                // 只有商家在训练集中
+                prediction = businessIter->second.avgStar;
+            }
+            else
+            {
+                // 用户和商家都不在训练集中
+                prediction = 3.67452543988905;
+            }
+            if (prediction > 5) {
+                prediction = 5;
+            }
+            stringstream out;
+            out << ++index << "," << prediction << endl;
+            predictionFile << out.str();
+        }
     }
-
+    submitionFile2.close();
+    
+    
     
     return 0;
 }
