@@ -250,7 +250,7 @@ void UPCC()
             if (nominator > 0 && denominator > 0) {
                 float predictStar = userMap.find(rangeIter->first)->second.avgStar + (nominator/denominator);
                 // 将计算结果插入到result中
-                result.insert(make_pair(rangeIter->first+","+rangeIter->second, predictStar));
+                result.insert(make_pair(rangeIter->first+rangeIter->second, predictStar));
             }
         }
     }
@@ -368,7 +368,7 @@ void IPCC()
             if (nominator > 0 && denominator > 0) {
                 float predictStar = businessMap.find(predictionIter->second)->second.avgStar + (nominator/denominator);
                 // 将计算结果插入到result中
-                result.insert(make_pair(predictionIter->second+","+predictionIter->first, predictStar));
+                result.insert(make_pair(predictionIter->second+predictionIter->first, predictStar));
             }
         }
     }
