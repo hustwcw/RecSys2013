@@ -31,7 +31,7 @@ struct SparseMatrix
     
     // 获取行列位置上元素的值，使用二分查找法在一行上查找
     // 按每行10000个元素，非零元素占0.5%计算，共有50个元素需要搜索，二分查找的平均比较6次不到
-    T getElem(int row, int col)
+    T getElem(int row, int col) const
     {
         int start = rpos[row];      // 当前行的起始位置
         int end = rpos[row + 1];    // 当前行的结束位置
@@ -51,6 +51,22 @@ struct SparseMatrix
         return (data[mid].j == col) ? data[mid].elem : T(0);
     }
     
+    void transposeMatrix(SparseMatrix &otherMatrix) const
+    {
+        int q = 0;
+        for (int col = 0; col < this->nu; ++col) {
+            otherMatrix.rpos[col] = q;
+            for (int p = 0; p < this->tu; ++p) {
+                if (this->data[p].j == col) {
+                    otherMatrix.data[q].i = this->data[p].j;
+                    otherMatrix.data[q].j = this->data[p].i;
+                    otherMatrix.data[q].elem = this->data[p].elem;
+                    ++q;
+                }
+            }
+        }
+        otherMatrix.rpos[this->nu] = q;
+    }
     
     ~SparseMatrix()
     {

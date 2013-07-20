@@ -83,17 +83,12 @@ ifstream trainingReviewFile = ifstream("/Users/jtang1/Desktop/2013/yelp_training
 ifstream submitionFile1 = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
 ifstream submitionFile2 = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
 ofstream predictionFile = ofstream("/Users/jtang1/Desktop/2013/prediction.csv");
-multimap<string, string> predictionMap;     // 需要预测的uid和bid
 map<string, float> result;  // 评分预测结果，key为uid与bid的连接
-map<string, User> userMap;
-map<string, Business> businessMap;
-SparseMatrix<float> *sparseM;
 float lamda = 0.4;
 
-void generateMatrix()
+void loadTrainingSet(map<string, User> &userMap, map<string, Business> &businessMap, set<Review> &reviewSet)
 {
     // 对于training_set_review根据uid和bid进行排序，便于直接生成稀疏矩阵
-    set<Review> reviewSet;
     if (trainingReviewFile.is_open()) {
         while (!trainingReviewFile.eof()) {
             string line;
@@ -144,36 +139,42 @@ void generateMatrix()
         iter->second.avgStar /= iter->second.reviewCount;
         iter->second.sequence = sequence++;
     }
-    
+}
+
+
+void generateMatrix(SparseMatrix<float> &sparseM, const map<string, User> &userMap, const map<string, Business> &businessMap, const set<Review> &reviewSet)
+{
     // 根据reviewSet生成稀疏矩阵
-    sparseM = new SparseMatrix<float>(static_cast<int>(reviewSet.size()), static_cast<int>(userMap.size()), static_cast<int>(businessMap.size()));
     int index = 0;
     int lastRow = -1;
     for (set<Review>::iterator iter = reviewSet.begin(); iter != reviewSet.end(); ++iter) {
         int row = userMap.find(iter->uid)->second.sequence;
         if (row != lastRow) {
-            sparseM->rpos[row] = index;
+            sparseM.rpos[row] = index;
         }
         int col = businessMap.find(iter->bid)->second.sequence;
-        sparseM->data[index++] = {row, col, iter->star};
+        sparseM.data[index++] = {row, col, iter->star};
         lastRow = row;
     }
-    sparseM->rpos[lastRow+1] = index;
+    sparseM.rpos[lastRow+1] = index;
 }
 
-
-void UPCC()
+template<class T, class V>
+void PCC(const SparseMatrix<float> &sparseM,
+         map<string, T> &rowMap,
+         const map<string, V> &colMap,
+         const multimap<string, string> &predictionMap)
 {
     // 对于每个用户，都计算他与其他用户的相似度
     int row = 0;
     int resultInsertCount = 0;
-    for (map<string, User>::iterator userIter1 = userMap.begin(); userIter1 != userMap.end(); ++userIter1) {
+    for (typename map<string, T>::iterator userIter1 = rowMap.begin(); userIter1 != rowMap.end(); ++userIter1) {
         if ((++row)%1024 == 0) {
             cout << row << endl;
         }
         // 每个用户都有一个相似度map，记录该用户与其他用户之间的相似度
         map<string, float> simMap; // uid-sim Map
-        for (map<string, User>::iterator userIter2 = userMap.begin(); userIter2 != userMap.end(); ++userIter2) {
+        for (typename map<string, T>::iterator userIter2 = rowMap.begin(); userIter2 != rowMap.end(); ++userIter2) {
             if (userIter2 == userIter1) {
                 continue;
             }
@@ -184,13 +185,13 @@ void UPCC()
             int intersectCount = 0;
             int row1 = userIter1->second.sequence;
             int row2 = userIter2->second.sequence;
-            int i = sparseM->rpos[row1];
-            int j = sparseM->rpos[row2];
-            for (; i < sparseM->rpos[row1+1] && j < sparseM->rpos[row2+1]; ) {
-                if (sparseM->data[i].j == sparseM->data[j].j) {
+            int i = sparseM.rpos[row1];
+            int j = sparseM.rpos[row2];
+            for (; i < sparseM.rpos[row1+1] && j < sparseM.rpos[row2+1]; ) {
+                if (sparseM.data[i].j == sparseM.data[j].j) {
                     // 列号相同，计算相似度
-                    float tempa = sparseM->data[i].elem - userIter1->second.avgStar;
-                    float tempu = sparseM->data[j].elem - userIter2->second.avgStar;
+                    float tempa = sparseM.data[i].elem - userIter1->second.avgStar;
+                    float tempu = sparseM.data[j].elem - userIter2->second.avgStar;
                     nominator += tempa * tempu;
                     denominator1 += tempa * tempa;
                     denominator2 += tempu * tempu;
@@ -198,7 +199,7 @@ void UPCC()
                     ++i;
                     ++j;
                 }
-                else if (sparseM->data[i].j < sparseM->data[j].j)
+                else if (sparseM.data[i].j < sparseM.data[j].j)
                 {
                     ++i;
                 }
@@ -233,20 +234,20 @@ void UPCC()
         }
         
         // 针对userIter1用户，找出所有需要预测的business
-        pair<multimap<string, string>::iterator, multimap<string, string>::iterator> ret = predictionMap.equal_range(userIter1->first);
-        for (multimap<string, string>::iterator rangeIter = ret.first; rangeIter != ret.second; ++rangeIter) {
-            map<string, Business>::iterator businessIter = businessMap.find(rangeIter->second);
+        pair<multimap<string, string>::const_iterator, multimap<string, string>::const_iterator> ret = predictionMap.equal_range(userIter1->first);
+        for (multimap<string, string>::const_iterator rangeIter = ret.first; rangeIter != ret.second; ++rangeIter) {
+            typename map<string, V>::const_iterator businessIter = colMap.find(rangeIter->second);
             // 需要预测的business不在训练集中
-            if (businessIter == businessMap.end()) {
+            if (businessIter == colMap.end()) {
                 continue;
             }
             int col = businessIter->second.sequence;
             float nominator = 0;
             float denominator = 0;
             for (map<string, float>::iterator simIter = simMap.begin(); simIter != simMap.end(); ++simIter) {
-                map<string, User>::iterator userIter = userMap.find(simIter->first);
+                typename map<string, T>::iterator userIter = rowMap.find(simIter->first);
                 int row = userIter->second.sequence;
-                float uaStar = sparseM->getElem(row, col);
+                float uaStar = sparseM.getElem(row, col);
                 // 有相似度的用户对于该要预测的商家没有过review
                 if (uaStar <= 0) {
                     continue;
@@ -256,7 +257,7 @@ void UPCC()
             }
             
             if (nominator > 0 && denominator > 0) {
-                float predictStar = userMap.find(rangeIter->first)->second.avgStar + (nominator/denominator);
+                float predictStar = rowMap.find(rangeIter->first)->second.avgStar + (nominator/denominator);
                 // 将计算结果插入到result中
                 result.insert(make_pair(rangeIter->first+rangeIter->second, predictStar));
                 ++resultInsertCount;
@@ -264,140 +265,18 @@ void UPCC()
         }
     }
     
-    cout << "UPCC: Result Insert Count:" << resultInsertCount << "\t" << "Result Count:" << result.size() << endl;
+    cout << "PCC: Result Insert Count:" << resultInsertCount << "\t" << "Result Count:" << result.size() << endl;
 }
-
-
-void IPCC()
-{
-    // 将User-Business稀疏矩阵sparseM转置为Business-User矩阵
-    SparseMatrix<float> BUMatrix(sparseM->tu, sparseM->nu, sparseM->mu);
-    int q = 0;
-    for (int col = 0; col < sparseM->nu; ++col) {
-        BUMatrix.rpos[col] = q;
-        for (int p = 0; p < sparseM->tu; ++p) {
-            if (sparseM->data[p].j == col) {
-                BUMatrix.data[q].i = sparseM->data[p].j;
-                BUMatrix.data[q].j = sparseM->data[p].i;
-                BUMatrix.data[q].elem = sparseM->data[p].elem;
-                ++q;
-            }
-        }
-    }
-    BUMatrix.rpos[sparseM->nu] = q;
-    
-    // 对于每个商家，都计算他与其他商家的相似度
-    int row = 0;
-    int resultInsertCount = 0;
-    for (map<string, Business>::iterator businessIter1 = businessMap.begin(); businessIter1 != businessMap.end(); ++businessIter1)
-    {
-        if ((++row)%1024 == 0) {
-            cout << row << endl;
-        }
-        map<string, float> simMap; // bid-sim Map
-        for (map<string, Business>::iterator businessIter2 = businessMap.begin(); businessIter2 != businessMap.end(); ++businessIter2)
-        {
-            if (businessIter2 == businessIter1) {
-                continue;
-            }
-            // 计算iter1和iter2的相似度
-            float nominator = 0.0f;
-            float denominator1 = 0.0f;
-            float denominator2 = 0.0f;
-            int intersectCount = 0;
-            int row1 = businessIter1->second.sequence;
-            int row2 = businessIter2->second.sequence;
-            int i = BUMatrix.rpos[row1];
-            int j = BUMatrix.rpos[row2];
-            for (; i < BUMatrix.rpos[row1+1] && j < BUMatrix.rpos[row2+1]; ) {
-                if (BUMatrix.data[i].j == BUMatrix.data[j].j)
-                {
-                    // 列号相同，计算相似度
-                    float tempa = BUMatrix.data[i].elem - businessIter1->second.avgStar;
-                    float tempu = BUMatrix.data[j].elem - businessIter2->second.avgStar;
-                    nominator += tempa * tempu;
-                    denominator1 += tempa * tempa;
-                    denominator2 += tempu * tempu;
-                    ++intersectCount;
-                    ++i;
-                    ++j;
-                }
-                else if (BUMatrix.data[i].j < BUMatrix.data[j].j)
-                {
-                    ++i;
-                }
-                else// if (BUMatrix.data[i].j > BUMatrix.data[j].j)
-                {
-                    ++j;
-                }
-            }
-            
-            if (nominator > 0 && denominator1 > 0 && denominator2 > 0) {
-                float weight = (2.0 * intersectCount / (businessIter1->second.reviewCount + businessIter2->second.reviewCount));
-                float sim = weight * (nominator / sqrt(denominator1 * denominator2));
-                simMap.insert(make_pair(businessIter2->first, sim));
-            }
-        }
-        // 根据simMap计算Business的confident weight
-        float simSum = 0;
-        float nominator = 0;
-        for (map<string, float>::iterator iter = simMap.begin(); iter != simMap.end(); ++iter) {
-            simSum += iter->second;
-        }
-        for (map<string, float>::iterator iter = simMap.begin(); iter != simMap.end(); ++iter) {
-            nominator += (iter->second) * (iter->second);
-        }
-        if (nominator >0 && simSum > 0) {
-            businessIter1->second.confident = nominator / simSum;
-        }
-        else
-        {
-            businessIter1->second.confident = 0;
-        }
-        
-        
-        // 针对businessIter1用户，找出所有需要预测的user
-        for (multimap<string, string>::iterator predictionIter = predictionMap.begin(); predictionIter != predictionMap.end(); ++predictionIter)
-        {
-            if (predictionIter->second != businessIter1->first) {
-                continue;
-            }
-            map<string, User>::iterator userIter = userMap.find(predictionIter->first);
-            // 需要预测的user不在训练集中
-            if (userIter == userMap.end()) {
-                continue;
-            }
-            int col = userIter->second.sequence;
-            float nominator = 0;
-            float denominator = 0;
-            for (map<string, float>::iterator simIter = simMap.begin(); simIter != simMap.end(); ++simIter)
-            {
-                map<string, Business>::iterator businessIter = businessMap.find(simIter->first);
-                int row = businessIter->second.sequence;
-                float uaStar = BUMatrix.getElem(row, col);
-                // 有相似度的商家对于该要预测的用户没有过review
-                if (uaStar <= 0) {
-                    continue;
-                }
-                nominator += (simIter->second * (uaStar - businessIter->second.avgStar));
-                denominator += simIter->second;
-            }
-            
-            if (nominator > 0 && denominator > 0) {
-                float predictStar = businessMap.find(predictionIter->second)->second.avgStar + (nominator/denominator);
-                // 将计算结果插入到result中
-                result.insert(make_pair(predictionIter->second+predictionIter->first, predictStar));
-                ++resultInsertCount;
-            }
-        }
-    }
-    
-    cout << "UPCC: Result Insert Count:" << resultInsertCount << "\t" << "Result Count:" << result.size() << endl;
-}
-
 
 int main(int argc, const char * argv[])
 {
+    map<string, User> userMap;
+    map<string, Business> businessMap;
+    set<Review> reviewSet;
+    multimap<string, string> predictionUBMap;     // 需要预测的uid和bid
+    multimap<string, string> predictionBUMap;     // 需要预测的bid和uid
+
+    
     //analyzeDataSet();
     // 将需要预测的数据读入predictionMap
     if (submitionFile1.is_open())
@@ -409,15 +288,22 @@ int main(int argc, const char * argv[])
             getline(submitionFile1, line);
             string uid = line.substr(0, 22);
             string bid = line.substr(23, 22);
-            predictionMap.insert(make_pair(uid, bid));
+            predictionUBMap.insert(make_pair(uid, bid));
+            predictionBUMap.insert(make_pair(bid, uid));
         }
     }
     submitionFile1.close();
+    
+    
+    loadTrainingSet(userMap, businessMap, reviewSet);
     // 生成稀疏矩阵
-    generateMatrix();
-    UPCC();
-    IPCC();
-    delete sparseM;
+    SparseMatrix<float> sparseUBMatrix(static_cast<int>(reviewSet.size()), static_cast<int>(userMap.size()), static_cast<int>(businessMap.size()));
+    SparseMatrix<float> sparseBUMatrix(static_cast<int>(reviewSet.size()), static_cast<int>(businessMap.size()), static_cast<int>(userMap.size()));
+    generateMatrix(sparseUBMatrix, userMap, businessMap, reviewSet);
+    sparseUBMatrix.transposeMatrix(sparseBUMatrix);
+    
+    PCC(sparseUBMatrix, userMap, businessMap, predictionUBMap);
+    PCC(sparseBUMatrix, businessMap, userMap, predictionBUMap);
     
 //    int temp = 0;
 //    for (map<string, float>::iterator iter = result.begin(); iter != result.end(); ++iter) {
