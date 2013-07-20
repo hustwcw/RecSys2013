@@ -98,23 +98,22 @@ void generateMatrix()
         while (!trainingReviewFile.eof()) {
             string line;
             getline(trainingReviewFile, line);
-            if (line.length() <= 0) {
-                continue;
-            }
             size_t start = line.find("\"user_id\":", 48);
             string uid = line.substr(start+12, 22);
             string bid = line.substr(line.length() - 24, 22);
             start = line.find("\"stars\"", 124);
             float stars = (float)atoi(line.substr(start+9, 1).c_str());
             
+            // TODO:reviewCount和avgStar换成user和business文件中给出的数据试试比较结果
             map<string, User>::iterator userIter;
             if ((userIter = userMap.find(uid)) == userMap.end()) {
                 userMap.insert(make_pair(uid, User(0, stars, 1)));
             }
             else
             {
+                // 先计算总得打分，最后计算平均分，business类似
                 ++(userIter->second.reviewCount);
-                userIter->second.avgStar = (userIter->second.avgStar * (userIter->second.reviewCount-1) + stars)/userIter->second.reviewCount;
+                userIter->second.avgStar += stars;
             }
             
             map<string, Business>::iterator businessIter;
@@ -124,7 +123,7 @@ void generateMatrix()
             else
             {
                 ++(businessIter->second.reviewCount);
-                businessIter->second.avgStar = (businessIter->second.avgStar * (businessIter->second.reviewCount-1) + stars)/businessIter->second.reviewCount;
+                businessIter->second.avgStar += stars;
             }
             
             reviewSet.insert(Review(uid, bid, stars));
@@ -132,16 +131,19 @@ void generateMatrix()
     }
     
     // 根据用户ID的字符串顺序调整用户在矩阵中的位置
+    // 计算用户打分的平均分
     int sequence = 0;
     for (map<string, User>::iterator iter = userMap.begin(); iter != userMap.end(); ++iter) {
+        iter->second.avgStar /= iter->second.reviewCount;
         iter->second.sequence = sequence++;
     }
     // 根据商家ID的字符串顺序调整商家在矩阵中的位置
+    // 计算商家打分的平均分
     sequence = 0;
     for (map<string, Business>::iterator iter = businessMap.begin(); iter != businessMap.end(); ++iter) {
+        iter->second.avgStar /= iter->second.reviewCount;
         iter->second.sequence = sequence++;
     }
-    
     
     // 根据reviewSet生成稀疏矩阵
     sparseM = new SparseMatrix<float>(static_cast<int>(reviewSet.size()), static_cast<int>(userMap.size()), static_cast<int>(businessMap.size()));
@@ -164,10 +166,12 @@ void UPCC()
 {
     // 对于每个用户，都计算他与其他用户的相似度
     int row = 0;
+    int resultInsertCount = 0;
     for (map<string, User>::iterator userIter1 = userMap.begin(); userIter1 != userMap.end(); ++userIter1) {
-        if ((++row)%100 == 0) {
+        if ((++row)%1024 == 0) {
             cout << row << endl;
         }
+        // 每个用户都有一个相似度map，记录该用户与其他用户之间的相似度
         map<string, float> simMap; // uid-sim Map
         for (map<string, User>::iterator userIter2 = userMap.begin(); userIter2 != userMap.end(); ++userIter2) {
             if (userIter2 == userIter1) {
@@ -191,26 +195,24 @@ void UPCC()
                     denominator1 += tempa * tempa;
                     denominator2 += tempu * tempu;
                     intersectCount++;
-                    i++;
-                    j++;
+                    ++i;
+                    ++j;
                 }
                 else if (sparseM->data[i].j < sparseM->data[j].j)
                 {
-                    i++;
+                    ++i;
                 }
-                else if (sparseM->data[i].j > sparseM->data[j].j)
+                else// if (sparseM->data[i].j > sparseM->data[j].j)
                 {
-                    j++;
+                    ++j;
                 }
             }
             
             if (nominator > 0 && denominator1 > 0 && denominator2 > 0) {
                 float weight = (2.0 * intersectCount / (userIter1->second.reviewCount + userIter2->second.reviewCount));
-                float sim = weight * (nominator/(sqrt(denominator1 * denominator2)));
+                float sim = weight * (nominator / sqrt(denominator1 * denominator2));
                 simMap.insert(make_pair(userIter2->first, sim));
             }
-            // 对所有计算出来的用户的相似度进行排序，选取其中最大的K个相似度做该用户的评分预测
-            // 需要预测的business可以从predictionMap中找到
         }
         
         // 根据simMap计算User的confident weight
@@ -222,7 +224,13 @@ void UPCC()
         for (map<string, float>::iterator iter = simMap.begin(); iter != simMap.end(); ++iter) {
             nominator += (iter->second) * (iter->second);
         }
-        userIter1->second.confident = nominator/simSum;
+        if (nominator >0 && simSum > 0) {
+            userIter1->second.confident = nominator / simSum;
+        }
+        else
+        {
+            userIter1->second.confident = 0;
+        }
         
         // 针对userIter1用户，找出所有需要预测的business
         pair<multimap<string, string>::iterator, multimap<string, string>::iterator> ret = predictionMap.equal_range(userIter1->first);
@@ -251,9 +259,12 @@ void UPCC()
                 float predictStar = userMap.find(rangeIter->first)->second.avgStar + (nominator/denominator);
                 // 将计算结果插入到result中
                 result.insert(make_pair(rangeIter->first+rangeIter->second, predictStar));
+                ++resultInsertCount;
             }
         }
     }
+    
+    cout << "UPCC: Result Insert Count:" << resultInsertCount << "\t" << "Result Count:" << result.size() << endl;
 }
 
 
@@ -277,9 +288,10 @@ void IPCC()
     
     // 对于每个商家，都计算他与其他商家的相似度
     int row = 0;
+    int resultInsertCount = 0;
     for (map<string, Business>::iterator businessIter1 = businessMap.begin(); businessIter1 != businessMap.end(); ++businessIter1)
     {
-        if ((++row)%100 == 0) {
+        if ((++row)%1024 == 0) {
             cout << row << endl;
         }
         map<string, float> simMap; // bid-sim Map
@@ -306,23 +318,23 @@ void IPCC()
                     nominator += tempa * tempu;
                     denominator1 += tempa * tempa;
                     denominator2 += tempu * tempu;
-                    intersectCount++;
-                    i++;
-                    j++;
+                    ++intersectCount;
+                    ++i;
+                    ++j;
                 }
                 else if (BUMatrix.data[i].j < BUMatrix.data[j].j)
                 {
-                    i++;
+                    ++i;
                 }
-                else if (BUMatrix.data[i].j > BUMatrix.data[j].j)
+                else// if (BUMatrix.data[i].j > BUMatrix.data[j].j)
                 {
-                    j++;
+                    ++j;
                 }
             }
             
             if (nominator > 0 && denominator1 > 0 && denominator2 > 0) {
                 float weight = (2.0 * intersectCount / (businessIter1->second.reviewCount + businessIter2->second.reviewCount));
-                float sim = weight * (nominator/(sqrt(denominator1 * denominator2)));
+                float sim = weight * (nominator / sqrt(denominator1 * denominator2));
                 simMap.insert(make_pair(businessIter2->first, sim));
             }
         }
@@ -335,7 +347,13 @@ void IPCC()
         for (map<string, float>::iterator iter = simMap.begin(); iter != simMap.end(); ++iter) {
             nominator += (iter->second) * (iter->second);
         }
-        businessIter1->second.confident = nominator/simSum;
+        if (nominator >0 && simSum > 0) {
+            businessIter1->second.confident = nominator / simSum;
+        }
+        else
+        {
+            businessIter1->second.confident = 0;
+        }
         
         
         // 针对businessIter1用户，找出所有需要预测的user
@@ -369,9 +387,12 @@ void IPCC()
                 float predictStar = businessMap.find(predictionIter->second)->second.avgStar + (nominator/denominator);
                 // 将计算结果插入到result中
                 result.insert(make_pair(predictionIter->second+predictionIter->first, predictStar));
+                ++resultInsertCount;
             }
         }
     }
+    
+    cout << "UPCC: Result Insert Count:" << resultInsertCount << "\t" << "Result Count:" << result.size() << endl;
 }
 
 
@@ -405,9 +426,15 @@ int main(int argc, const char * argv[])
     // 根据result和UserMap、BusinessMap中的评分平均值计算最终的评分
     if (submitionFile2.is_open())
     {
+        predictionFile << "RecommendationId,Stars" << endl;
         string line;
         getline(submitionFile2, line);
         int index = 0;
+        
+        int upccCount = 0;
+        int ipccCount = 0;
+        
+        
         while (!submitionFile2.eof())
         {
             getline(submitionFile2, line);
@@ -424,6 +451,7 @@ int main(int argc, const char * argv[])
             
             if (userResultIter != result.end()) {
                 upcc = userResultIter->second;
+                ++upccCount;
             }
             else
             {
@@ -439,6 +467,7 @@ int main(int argc, const char * argv[])
             
             if (busiResultIter != result.end()) {
                 ipcc = userResultIter->second;
+                ++ipccCount;
             }
             else
             {
@@ -490,9 +519,10 @@ int main(int argc, const char * argv[])
             out << ++index << "," << prediction << endl;
             predictionFile << out.str();
         }
+        
+        cout << "UPCC Count: " << upccCount << "\tIPCC Count: " << ipccCount << endl;
     }
     submitionFile2.close();
-    
     
     
     return 0;
