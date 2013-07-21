@@ -35,6 +35,7 @@
 		BB4D094217899BB8002107F6 /* SparseMatrix.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SparseMatrix.h; sourceTree = "<group>"; };
 		BB90EDE017951EF20023546F /* Util.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Util.cpp; sourceTree = "<group>"; };
 		BB90EDE117951EF20023546F /* Util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Util.h; sourceTree = "<group>"; };
+		BBA4BA41179AB1450003B338 /* result.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = result.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,6 +75,7 @@
 				BB4D094217899BB8002107F6 /* SparseMatrix.h */,
 				BB90EDE017951EF20023546F /* Util.cpp */,
 				BB90EDE117951EF20023546F /* Util.h */,
+				BBA4BA41179AB1450003B338 /* result.txt */,
 			);
 			path = RecSys2013;
 			sourceTree = "<group>";

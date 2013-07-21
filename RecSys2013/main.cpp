@@ -84,7 +84,7 @@ ifstream submitionFile1 = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.
 ifstream submitionFile2 = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
 ofstream predictionFile = ofstream("/Users/jtang1/Desktop/2013/prediction.csv");
 map<string, float> result;  // 评分预测结果，key为uid与bid的连接
-float lamda = 0.4;
+float lamda = 0.15;
 
 void loadTrainingSet(map<string, User> &userMap, map<string, Business> &businessMap, set<Review> &reviewSet)
 {
@@ -124,6 +124,8 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             reviewSet.insert(Review(uid, bid, stars));
         }
     }
+    trainingReviewFile.close();
+    
     
     // 根据用户ID的字符串顺序调整用户在矩阵中的位置
     // 计算用户打分的平均分
@@ -138,6 +140,66 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     for (map<string, Business>::iterator iter = businessMap.begin(); iter != businessMap.end(); ++iter) {
         iter->second.avgStar /= iter->second.reviewCount;
         iter->second.sequence = sequence++;
+    }
+    
+    // load training_set_user to userMap
+    ifstream trainingSetUserFile("/Users/jtang1/Desktop/2013/yelp_training_set/yelp_training_set_user.json");
+    if (trainingSetUserFile.is_open()) {
+        int number = 0;
+        while (!trainingSetUserFile.eof()) {
+            string line;
+            getline(trainingSetUserFile, line);
+            size_t start = line.find("\"user_id\":", 48);
+            string uid = line.substr(start+12, 22);
+            start = line.find("\"average_stars\"", 96);
+            size_t end = line.find(",", start+17);
+            float avg_stars = atof(line.substr(start+17, end - start - 17).c_str());
+            start = line.find("\"review_count\"", end);
+            end = line.find(",", start);
+            int review_count = atoi(line.substr(start+16, end-start-16).c_str());
+            map<string, User>::iterator userIter = userMap.find(uid);
+            if (userIter != userMap.end()) {
+                userIter->second.avgStar = avg_stars;
+                userIter->second.reviewCount = review_count;
+            }
+            else
+            {
+                userMap.insert(make_pair(uid, User(-1, avg_stars, review_count)));
+            }
+            
+            if (number++ < 10) {
+                cout << uid << " " << avg_stars << " " << review_count << endl;
+            }
+        }
+    }
+    // load training_set_business to businessMap
+    ifstream trainingSetBusinessFile("/Users/jtang1/Desktop/2013/yelp_training_set/yelp_training_set_business.json");
+    if (trainingSetBusinessFile.is_open()) {
+        int number = 0;
+        while (!trainingSetBusinessFile.eof()) {
+            string line;
+            getline(trainingSetBusinessFile, line);
+            string bid = line.substr(17, 22);
+            size_t start = line.find("\"stars\"");
+            size_t end = line.find(",", start+9);
+            float avg_stars = atof(line.substr(start+9, end - start - 9).c_str());
+            start = line.find("\"review_count\"");
+            end = line.find(",", start);
+            int review_count = atoi(line.substr(start+16, end-start-16).c_str());
+            map<string, Business>::iterator businessIter = businessMap.find(bid);
+            if (businessIter != businessMap.end()) {
+                businessIter->second.avgStar = avg_stars;
+                businessIter->second.reviewCount = review_count;
+            }
+            else
+            {
+                businessMap.insert(make_pair(bid, Business(-1, avg_stars, review_count)));
+            }
+            
+            if (number++ < 10) {
+                cout << bid << " " << avg_stars << " " << review_count << endl;
+            }
+        }
     }
 }
 
@@ -257,7 +319,7 @@ void PCC(const SparseMatrix<float> &sparseM,
             }
             
             if (nominator > 0 && denominator > 0) {
-                float predictStar = rowMap.find(rangeIter->first)->second.avgStar + (nominator/denominator);
+                float predictStar = rowMap.find(userIter1->first)->second.avgStar + (nominator/denominator);
                 // 将计算结果插入到result中
                 result.insert(make_pair(rangeIter->first+rangeIter->second, predictStar));
                 ++resultInsertCount;
@@ -302,8 +364,8 @@ int main(int argc, const char * argv[])
     generateMatrix(sparseUBMatrix, userMap, businessMap, reviewSet);
     sparseUBMatrix.transposeMatrix(sparseBUMatrix);
     
-    PCC(sparseUBMatrix, userMap, businessMap, predictionUBMap);
-    PCC(sparseBUMatrix, businessMap, userMap, predictionBUMap);
+    PCC(sparseUBMatrix, userMap, businessMap, predictionUBMap); // UPCC
+    PCC(sparseBUMatrix, businessMap, userMap, predictionBUMap); // IPCC
     
 //    int temp = 0;
 //    for (map<string, float>::iterator iter = result.begin(); iter != result.end(); ++iter) {
@@ -352,7 +414,7 @@ int main(int argc, const char * argv[])
             }
             
             if (busiResultIter != result.end()) {
-                ipcc = userResultIter->second;
+                ipcc = busiResultIter->second;
                 ++ipccCount;
             }
             else
@@ -386,12 +448,12 @@ int main(int argc, const char * argv[])
             else if (userInTraining)
             {
                 // 只有用户在训练集中
-                prediction = userIter->second.avgStar;
+                prediction = upcc;
             }
             else if (businessInTraining)
             {
                 // 只有商家在训练集中
-                prediction = businessIter->second.avgStar;
+                prediction = ipcc;
             }
             else
             {
