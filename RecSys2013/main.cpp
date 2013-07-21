@@ -143,7 +143,6 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     // load training_set_user to userMap
     ifstream trainingSetUserFile("/Users/jtang1/Desktop/2013/yelp_training_set/yelp_training_set_user.json");
     if (trainingSetUserFile.is_open()) {
-        int number = 0;
         while (!trainingSetUserFile.eof()) {
             string line;
             getline(trainingSetUserFile, line);
@@ -169,7 +168,6 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     // load training_set_business to businessMap
     ifstream trainingSetBusinessFile("/Users/jtang1/Desktop/2013/yelp_training_set/yelp_training_set_business.json");
     if (trainingSetBusinessFile.is_open()) {
-        int number = 0;
         while (!trainingSetBusinessFile.eof()) {
             string line;
             getline(trainingSetBusinessFile, line);
@@ -325,7 +323,7 @@ void UIPCC(const map<string, User> &userMap, const map<string, Business> &busine
 {
     ifstream submitionFile2 = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
     stringstream predictionFileName;
-    predictionFileName << "/Users/jtang1/Desktop/2013/prediction_" << lamda << ".csv";
+    predictionFileName << "/Users/jtang1/Desktop/2013/prediction_lamda_" << lamda << ".csv";
     ofstream predictionFile = ofstream(predictionFileName.str());
     // 根据result和UserMap、BusinessMap中的评分平均值计算最终的评分
     if (submitionFile2.is_open())
@@ -471,8 +469,8 @@ int main(int argc, const char * argv[])
 
     float lamda = 0.05;
     for (int i = 0; i < 19; ++i) {
-        lamda = lamda + i * 0.05;
-        UIPCC(userMap, businessMap, lamda+i);
+        lamda += 0.05;
+        UIPCC(userMap, businessMap, lamda);
     }
 
     

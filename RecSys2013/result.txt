@@ -1,4 +1,11 @@
 avg star & review count are from the training set:
+lamda = 0.1     : 1.25936
 lamda = 0.15    : 1.25822
-lamda = 0.3     :
-lamda = 0.45    : 
+lamda = 0.2     : 1.25750
+lamda = 0.25    : 1.25708
+lamda = 0.3     : 1.25688
+lamda = 0.35    : 1.25687
+lamda = 0.45    : 1.25738
+lamda = 0.6     : 1.25939
+lamda = 0.75
+lamda = 0.90
