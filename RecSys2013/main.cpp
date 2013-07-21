@@ -81,10 +81,8 @@ struct Review {
 
 ifstream trainingReviewFile = ifstream("/Users/jtang1/Desktop/2013/yelp_training_set/yelp_training_set_review.json");
 ifstream submitionFile1 = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
-ifstream submitionFile2 = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
-ofstream predictionFile = ofstream("/Users/jtang1/Desktop/2013/prediction.csv");
+
 map<string, float> result;  // 评分预测结果，key为uid与bid的连接
-float lamda = 0.15;
 
 void loadTrainingSet(map<string, User> &userMap, map<string, Business> &businessMap, set<Review> &reviewSet)
 {
@@ -166,10 +164,6 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             {
                 userMap.insert(make_pair(uid, User(-1, avg_stars, review_count)));
             }
-            
-            if (number++ < 10) {
-                cout << uid << " " << avg_stars << " " << review_count << endl;
-            }
         }
     }
     // load training_set_business to businessMap
@@ -194,10 +188,6 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             else
             {
                 businessMap.insert(make_pair(bid, Business(-1, avg_stars, review_count)));
-            }
-            
-            if (number++ < 10) {
-                cout << bid << " " << avg_stars << " " << review_count << endl;
             }
         }
     }
@@ -330,47 +320,13 @@ void PCC(const SparseMatrix<float> &sparseM,
     cout << "PCC: Result Insert Count:" << resultInsertCount << "\t" << "Result Count:" << result.size() << endl;
 }
 
-int main(int argc, const char * argv[])
-{
-    map<string, User> userMap;
-    map<string, Business> businessMap;
-    set<Review> reviewSet;
-    multimap<string, string> predictionUBMap;     // 需要预测的uid和bid
-    multimap<string, string> predictionBUMap;     // 需要预测的bid和uid
 
-    
-    //analyzeDataSet();
-    // 将需要预测的数据读入predictionMap
-    if (submitionFile1.is_open())
-    {
-        string line;
-        getline(submitionFile1, line);
-        while (!submitionFile1.eof())
-        {
-            getline(submitionFile1, line);
-            string uid = line.substr(0, 22);
-            string bid = line.substr(23, 22);
-            predictionUBMap.insert(make_pair(uid, bid));
-            predictionBUMap.insert(make_pair(bid, uid));
-        }
-    }
-    submitionFile1.close();
-    
-    
-    loadTrainingSet(userMap, businessMap, reviewSet);
-    // 生成稀疏矩阵
-    SparseMatrix<float> sparseUBMatrix(static_cast<int>(reviewSet.size()), static_cast<int>(userMap.size()), static_cast<int>(businessMap.size()));
-    SparseMatrix<float> sparseBUMatrix(static_cast<int>(reviewSet.size()), static_cast<int>(businessMap.size()), static_cast<int>(userMap.size()));
-    generateMatrix(sparseUBMatrix, userMap, businessMap, reviewSet);
-    sparseUBMatrix.transposeMatrix(sparseBUMatrix);
-    
-    PCC(sparseUBMatrix, userMap, businessMap, predictionUBMap); // UPCC
-    PCC(sparseBUMatrix, businessMap, userMap, predictionBUMap); // IPCC
-    
-//    int temp = 0;
-//    for (map<string, float>::iterator iter = result.begin(); iter != result.end(); ++iter) {
-//        cout << temp++ << ": " << iter->first << "," << iter->second << endl;
-//    }
+void UIPCC(const map<string, User> &userMap, const map<string, Business> &businessMap, float lamda)
+{
+    ifstream submitionFile2 = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
+    stringstream predictionFileName;
+    predictionFileName << "/Users/jtang1/Desktop/2013/prediction_" << lamda << ".csv";
+    ofstream predictionFile = ofstream(predictionFileName.str());
     // 根据result和UserMap、BusinessMap中的评分平均值计算最终的评分
     if (submitionFile2.is_open())
     {
@@ -388,8 +344,8 @@ int main(int argc, const char * argv[])
             getline(submitionFile2, line);
             string uid = line.substr(0, 22);
             string bid = line.substr(23, 22);
-            map<string, User>::iterator userIter = userMap.find(uid);
-            map<string, Business>::iterator businessIter = businessMap.find(bid);
+            map<string, User>::const_iterator userIter = userMap.find(uid);
+            map<string, Business>::const_iterator businessIter = businessMap.find(bid);
             map<string, float>::iterator userResultIter = result.find(uid+bid);
             map<string, float>::iterator busiResultIter = result.find(bid+uid);
             float upcc, ipcc;
@@ -471,6 +427,54 @@ int main(int argc, const char * argv[])
         cout << "UPCC Count: " << upccCount << "\tIPCC Count: " << ipccCount << endl;
     }
     submitionFile2.close();
+    predictionFile.close();
+}
+
+
+int main(int argc, const char * argv[])
+{
+    map<string, User> userMap;
+    map<string, Business> businessMap;
+    set<Review> reviewSet;
+    multimap<string, string> predictionUBMap;     // 需要预测的uid和bid
+    multimap<string, string> predictionBUMap;     // 需要预测的bid和uid
+
+    
+    //analyzeDataSet();
+    // 将需要预测的数据读入predictionMap
+    if (submitionFile1.is_open())
+    {
+        string line;
+        getline(submitionFile1, line);
+        while (!submitionFile1.eof())
+        {
+            getline(submitionFile1, line);
+            string uid = line.substr(0, 22);
+            string bid = line.substr(23, 22);
+            predictionUBMap.insert(make_pair(uid, bid));
+            predictionBUMap.insert(make_pair(bid, uid));
+        }
+    }
+    submitionFile1.close();
+    
+    
+    loadTrainingSet(userMap, businessMap, reviewSet);
+    // 生成稀疏矩阵
+    SparseMatrix<float> sparseUBMatrix(static_cast<int>(reviewSet.size()), static_cast<int>(userMap.size()), static_cast<int>(businessMap.size()));
+    SparseMatrix<float> sparseBUMatrix(static_cast<int>(reviewSet.size()), static_cast<int>(businessMap.size()), static_cast<int>(userMap.size()));
+    generateMatrix(sparseUBMatrix, userMap, businessMap, reviewSet);
+    sparseUBMatrix.transposeMatrix(sparseBUMatrix);
+    
+    PCC(sparseUBMatrix, userMap, businessMap, predictionUBMap); // UPCC
+    PCC(sparseBUMatrix, businessMap, userMap, predictionBUMap); // IPCC
+    
+
+    float lamda = 0.05;
+    for (int i = 0; i < 19; ++i) {
+        lamda = lamda + i * 0.05;
+        UIPCC(userMap, businessMap, lamda+i);
+    }
+
     
     
     return 0;
