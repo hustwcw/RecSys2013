@@ -23,6 +23,8 @@
 #include "SparseMatrix.h"
 
 
+#define LocalTest
+
 
 using namespace std;
 
@@ -79,13 +81,17 @@ struct Review {
 };
 
 
-ifstream trainingReviewFile = ifstream("/Users/jtang1/Desktop/2013/yelp_training_set/yelp_training_set_review.json");
-ifstream submitionFile1 = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
 
 map<string, float> result;  // 评分预测结果，key为uid与bid的连接
 
-void loadTrainingSet(map<string, User> &userMap, map<string, Business> &businessMap, set<Review> &reviewSet)
+void loadTrainingSet(map<string, User> &userMap, map<string, Business> &businessMap, set<Review> &reviewSet, int &rowCount, int &colCount)
 {
+#ifdef LocalTest
+    ifstream trainingReviewFile = ifstream("/Users/jtang1/Desktop/test2013/training_review.json");
+#else
+    ifstream trainingReviewFile = ifstream("/Users/jtang1/Desktop/2013/yelp_training_set/yelp_training_set_review.json");
+#endif
+
     // 对于training_set_review根据uid和bid进行排序，便于直接生成稀疏矩阵
     if (trainingReviewFile.is_open()) {
         while (!trainingReviewFile.eof()) {
@@ -97,7 +103,6 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             start = line.find("\"stars\"", 124);
             float stars = (float)atoi(line.substr(start+9, 1).c_str());
             
-            // TODO:reviewCount和avgStar换成user和business文件中给出的数据试试比较结果
             map<string, User>::iterator userIter;
             if ((userIter = userMap.find(uid)) == userMap.end()) {
                 userMap.insert(make_pair(uid, User(0, stars, 1)));
@@ -132,6 +137,8 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
         iter->second.avgStar /= iter->second.reviewCount;
         iter->second.sequence = sequence++;
     }
+    rowCount = sequence;
+    
     // 根据商家ID的字符串顺序调整商家在矩阵中的位置
     // 计算商家打分的平均分
     sequence = 0;
@@ -139,6 +146,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
         iter->second.avgStar /= iter->second.reviewCount;
         iter->second.sequence = sequence++;
     }
+    colCount = sequence;
     
     // load training_set_user to userMap
     ifstream trainingSetUserFile("/Users/jtang1/Desktop/2013/yelp_training_set/yelp_training_set_user.json");
@@ -157,7 +165,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             map<string, User>::iterator userIter = userMap.find(uid);
             if (userIter != userMap.end()) {
                 userIter->second.avgStar = avg_stars;
-                userIter->second.reviewCount = review_count;
+//                userIter->second.reviewCount = review_count;
             }
             else
             {
@@ -181,7 +189,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             map<string, Business>::iterator businessIter = businessMap.find(bid);
             if (businessIter != businessMap.end()) {
                 businessIter->second.avgStar = avg_stars;
-                businessIter->second.reviewCount = review_count;
+//                businessIter->second.reviewCount = review_count;
             }
             else
             {
@@ -222,10 +230,15 @@ void PCC(const SparseMatrix<float> &sparseM,
         if ((++row)%1024 == 0) {
             cout << row << endl;
         }
+        // 不在训练集的review中的数据不需要计算相似度
+        if (userIter1->second.sequence < 0)
+        {
+            continue;
+        }
         // 每个用户都有一个相似度map，记录该用户与其他用户之间的相似度
         map<string, float> simMap; // uid-sim Map
         for (typename map<string, T>::iterator userIter2 = rowMap.begin(); userIter2 != rowMap.end(); ++userIter2) {
-            if (userIter2 == userIter1) {
+            if (userIter2 == userIter1 || userIter2->second.sequence < 0) {
                 continue;
             }
             // 计算iter1和iter2的相似度
@@ -262,7 +275,9 @@ void PCC(const SparseMatrix<float> &sparseM,
             if (nominator > 0 && denominator1 > 0 && denominator2 > 0) {
                 float weight = (2.0 * intersectCount / (userIter1->second.reviewCount + userIter2->second.reviewCount));
                 float sim = weight * (nominator / sqrt(denominator1 * denominator2));
-                simMap.insert(make_pair(userIter2->first, sim));
+                if (sim > 0.01) {
+                    simMap.insert(make_pair(userIter2->first, sim));
+                }
             }
         }
         
@@ -306,7 +321,7 @@ void PCC(const SparseMatrix<float> &sparseM,
                 denominator += simIter->second;
             }
             
-            if (nominator > 0 && denominator > 0) {
+            if (nominator >0 && denominator > 0) {
                 float predictStar = rowMap.find(userIter1->first)->second.avgStar + (nominator/denominator);
                 // 将计算结果插入到result中
                 result.insert(make_pair(rangeIter->first+rangeIter->second, predictStar));
@@ -319,29 +334,75 @@ void PCC(const SparseMatrix<float> &sparseM,
 }
 
 
+float computeRMSE(const string &predictionFileName)
+{
+    ifstream testReviewFile("/Users/jtang1/Desktop/test2013/test_review.json");
+    ifstream predictionFile(predictionFileName);
+    
+    float sum = 0;
+    int n = 0;
+    if (testReviewFile.is_open() && predictionFile.is_open()) {
+        while (!testReviewFile.eof() && !predictionFile.eof()) {
+            string testLine, predictionLine;
+            getline(testReviewFile, testLine);
+            getline(predictionFile, predictionLine);
+            
+            size_t start = testLine.find("\"stars\"", 124);
+            float testStar = (float)atoi(testLine.substr(start+9, 1).c_str());
+            
+            start = predictionLine.find(",");
+            float predictionStar = atof(predictionLine.substr(start+1, predictionLine.length()-start-1).c_str());
+            
+            sum += (testStar - predictionStar) * (testStar - predictionStar);
+            ++n;
+        }
+    }
+    
+    return sqrt(sum/n);
+}
+
 void UIPCC(const map<string, User> &userMap, const map<string, Business> &businessMap, float lamda)
 {
-    ifstream submitionFile2 = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
+#ifdef LocalTest
+    ifstream submitionFile = ifstream("/Users/jtang1/Desktop/test2013/test_review.json");
+#else
+    ifstream submitionFile = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
+#endif
+    
     stringstream predictionFileName;
-    predictionFileName << "/Users/jtang1/Desktop/2013/prediction_lamda_" << lamda << ".csv";
+    
+#ifdef LocalTest
+    predictionFileName << "/Users/jtang1/Desktop/test2013/prediction/prediction2_lamda_" << lamda << ".csv";
+#else
+    predictionFileName << "/Users/jtang1/Desktop/2013/prediction/prediction2_lamda_" << lamda << ".csv";
+#endif
     ofstream predictionFile = ofstream(predictionFileName.str());
     // 根据result和UserMap、BusinessMap中的评分平均值计算最终的评分
-    if (submitionFile2.is_open())
+    if (submitionFile.is_open())
     {
+#ifndef LocalTest
         predictionFile << "RecommendationId,Stars" << endl;
+#endif
         string line;
-        getline(submitionFile2, line);
+        getline(submitionFile, line);
         int index = 0;
         
         int upccCount = 0;
         int ipccCount = 0;
         
         
-        while (!submitionFile2.eof())
+        while (!submitionFile.eof())
         {
-            getline(submitionFile2, line);
+            getline(submitionFile, line);
+#ifdef LocalTest
+            size_t start;
+            start = line.find("\"user_id\"");
+            string uid = line.substr(start+12, 22);
+            string bid = line.substr(line.length() - 24, 22);
+#else
             string uid = line.substr(0, 22);
             string bid = line.substr(23, 22);
+#endif
             map<string, User>::const_iterator userIter = userMap.find(uid);
             map<string, Business>::const_iterator businessIter = businessMap.find(bid);
             map<string, float>::iterator userResultIter = result.find(uid+bid);
@@ -417,15 +478,58 @@ void UIPCC(const map<string, User> &userMap, const map<string, Business> &busine
             if (prediction > 5) {
                 prediction = 5;
             }
-            stringstream out;
-            out << ++index << "," << prediction << endl;
-            predictionFile << out.str();
+            if (prediction < 1) {
+                prediction = 1;
+            }
+            predictionFile << ++index << "," << prediction << endl;
         }
         
         cout << "UPCC Count: " << upccCount << "\tIPCC Count: " << ipccCount << endl;
     }
-    submitionFile2.close();
+    submitionFile.close();
     predictionFile.close();
+    
+#ifdef LocalTest
+    cout << "lamda=" << lamda << ": " << computeRMSE(predictionFileName.str()) << endl;
+#endif
+}
+
+
+// 从训练集中分出一部分做测试集
+void splitTrainingSet()
+{
+    ifstream reviewFile("/Users/jtang1/Desktop/test2013/review.json");
+    ofstream trainingReviewFile("/Users/jtang1/Desktop/test2013/training_review.json");
+    ofstream testReviewFile("/Users/jtang1/Desktop/test2013/test_review.json");
+    
+    int testLine = 0;
+    int trainingLine = 0;
+    if (reviewFile.is_open()) {
+        while (!reviewFile.eof()) {
+            string line;
+            getline(reviewFile, line);
+            srand((unsigned int)clock());
+            if ((rand() % 100) < 10) {
+                if (testLine != 0) {
+                    testReviewFile << endl;
+                }
+                ++testLine;
+                testReviewFile << line;
+            }
+            else
+            {
+                if (trainingLine != 0) {
+                    trainingReviewFile << endl;
+                }
+                ++trainingLine;
+                trainingReviewFile << line;
+            }
+        }
+    }
+    
+    reviewFile.close();
+    trainingReviewFile.close();
+    testReviewFile.close();
 }
 
 
@@ -439,27 +543,40 @@ int main(int argc, const char * argv[])
 
     
     //analyzeDataSet();
+#ifdef LocalTest
+    ifstream submitionFile = ifstream("/Users/jtang1/Desktop/test2013/test_review.json");
+#else
+    ifstream submitionFile = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
+#endif
     // 将需要预测的数据读入predictionMap
-    if (submitionFile1.is_open())
+    if (submitionFile.is_open())
     {
         string line;
-        getline(submitionFile1, line);
-        while (!submitionFile1.eof())
+        getline(submitionFile, line);
+        while (!submitionFile.eof())
         {
-            getline(submitionFile1, line);
+            getline(submitionFile, line);
+#ifdef LocalTest
+            size_t start;
+            start = line.find("\"user_id\"");
+            string uid = line.substr(start+12, 22);
+            string bid = line.substr(line.length() - 24, 22);
+#else
             string uid = line.substr(0, 22);
             string bid = line.substr(23, 22);
+#endif
             predictionUBMap.insert(make_pair(uid, bid));
             predictionBUMap.insert(make_pair(bid, uid));
         }
     }
-    submitionFile1.close();
+    submitionFile.close();
     
     
-    loadTrainingSet(userMap, businessMap, reviewSet);
+    int rowCount, colCount;
+    loadTrainingSet(userMap, businessMap, reviewSet, rowCount, colCount);
     // 生成稀疏矩阵
-    SparseMatrix<float> sparseUBMatrix(static_cast<int>(reviewSet.size()), static_cast<int>(userMap.size()), static_cast<int>(businessMap.size()));
-    SparseMatrix<float> sparseBUMatrix(static_cast<int>(reviewSet.size()), static_cast<int>(businessMap.size()), static_cast<int>(userMap.size()));
+    SparseMatrix<float> sparseUBMatrix(static_cast<int>(reviewSet.size()), rowCount, colCount);
+    SparseMatrix<float> sparseBUMatrix(static_cast<int>(reviewSet.size()), colCount, rowCount);
     generateMatrix(sparseUBMatrix, userMap, businessMap, reviewSet);
     sparseUBMatrix.transposeMatrix(sparseBUMatrix);
     
