@@ -23,7 +23,7 @@
 #include "SparseMatrix.h"
 
 
-#define LocalTest
+//#define LocalTest
 
 
 using namespace std;
@@ -37,6 +37,8 @@ struct User {
     int reviewCount;
     float confident;
     
+    User(){}
+    
     User(int theSequence, float theAvgStar, int theReviewCount)
     :sequence(theSequence), avgStar(theAvgStar), reviewCount(theReviewCount)
     {}
@@ -47,6 +49,8 @@ struct Business {
     float avgStar;
     int reviewCount;
     float confident;
+    
+    Business(){}
     
     Business(int theSequence, float theAvgStar, int theReviewCount)
     :sequence(theSequence), avgStar(theAvgStar), reviewCount(theReviewCount)
@@ -221,8 +225,11 @@ template<class T, class V>
 void PCC(const SparseMatrix<float> &sparseM,
          map<string, T> &rowMap,
          const map<string, V> &colMap,
+         const vector<V> &colVec,
          const multimap<string, string> &predictionMap)
 {
+    int insertSimCount = 0;
+    int discardSimCount = 0;
     // 对于每个用户，都计算他与其他用户的相似度
     int row = 0;
     int resultInsertCount = 0;
@@ -255,7 +262,8 @@ void PCC(const SparseMatrix<float> &sparseM,
                     // 列号相同，计算相似度
                     float tempa = sparseM.data[i].elem - userIter1->second.avgStar;
                     float tempu = sparseM.data[j].elem - userIter2->second.avgStar;
-                    nominator += tempa * tempu;
+                    float popWeight = 1.0/log10(1.0 + colVec[sparseM.data[i].j].reviewCount); // 对热门商品进行惩罚的权值 1/log(1+N(i))
+                    nominator += tempa * tempu * popWeight;
                     denominator1 += tempa * tempa;
                     denominator2 += tempu * tempu;
                     intersectCount++;
@@ -275,8 +283,13 @@ void PCC(const SparseMatrix<float> &sparseM,
             if (nominator > 0 && denominator1 > 0 && denominator2 > 0) {
                 float weight = (2.0 * intersectCount / (userIter1->second.reviewCount + userIter2->second.reviewCount));
                 float sim = weight * (nominator / sqrt(denominator1 * denominator2));
-                if (sim > 0.01) {
+                if (sim > 0.015) {
+                    ++insertSimCount;
                     simMap.insert(make_pair(userIter2->first, sim));
+                }
+                else
+                {
+                    ++discardSimCount;
                 }
             }
         }
@@ -317,11 +330,19 @@ void PCC(const SparseMatrix<float> &sparseM,
                 if (uaStar <= 0) {
                     continue;
                 }
-                nominator += (simIter->second * (uaStar - userIter->second.avgStar));
+                float temp = uaStar - userIter->second.avgStar;
+//                if (temp < 0) {
+//                    temp *= 0.25;
+//                }
+                nominator += (simIter->second * temp);
                 denominator += simIter->second;
             }
             
-            if (nominator >0 && denominator > 0) {
+            if (denominator > 0) {
+                if (nominator < 0) {
+                    // 对低于平均值的打分进行降权
+                    nominator /= 4;
+                }
                 float predictStar = rowMap.find(userIter1->first)->second.avgStar + (nominator/denominator);
                 // 将计算结果插入到result中
                 result.insert(make_pair(rangeIter->first+rangeIter->second, predictStar));
@@ -330,7 +351,8 @@ void PCC(const SparseMatrix<float> &sparseM,
         }
     }
     
-    cout << "PCC: Result Insert Count:" << resultInsertCount << "\t" << "Result Count:" << result.size() << endl;
+    cout << "Insert Sim Count: " << insertSimCount << "\tDiscard Sim Count: " << discardSimCount << endl;
+    cout << "PCC: Result Insert Count:" << resultInsertCount << "\tResult Count:" << result.size() << endl;
 }
 
 
@@ -353,7 +375,7 @@ float computeRMSE(const string &predictionFileName)
             start = predictionLine.find(",");
             float predictionStar = atof(predictionLine.substr(start+1, predictionLine.length()-start-1).c_str());
             
-            sum += (testStar - predictionStar) * (testStar - predictionStar);
+            sum += ((testStar - predictionStar) * (testStar - predictionStar));
             ++n;
         }
     }
@@ -363,28 +385,26 @@ float computeRMSE(const string &predictionFileName)
 
 void UIPCC(const map<string, User> &userMap, const map<string, Business> &businessMap, float lamda)
 {
-#ifdef LocalTest
-    ifstream submitionFile = ifstream("/Users/jtang1/Desktop/test2013/test_review.json");
-#else
-    ifstream submitionFile = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
-#endif
-    
     stringstream predictionFileName;
     
 #ifdef LocalTest
+    ifstream submitionFile = ifstream("/Users/jtang1/Desktop/test2013/test_review.json");
     predictionFileName << "/Users/jtang1/Desktop/test2013/prediction/prediction2_lamda_" << lamda << ".csv";
 #else
+    ifstream submitionFile = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
     predictionFileName << "/Users/jtang1/Desktop/2013/prediction/prediction2_lamda_" << lamda << ".csv";
 #endif
+    
     ofstream predictionFile = ofstream(predictionFileName.str());
     // 根据result和UserMap、BusinessMap中的评分平均值计算最终的评分
     if (submitionFile.is_open())
     {
+        string line;
+
 #ifndef LocalTest
         predictionFile << "RecommendationId,Stars" << endl;
-#endif
-        string line;
         getline(submitionFile, line);
+#endif
         int index = 0;
         
         int upccCount = 0;
@@ -450,8 +470,21 @@ void UIPCC(const map<string, User> &userMap, const map<string, Business> &busine
                 float conu = userIter->second.confident;
                 float coni = businessIter->second.confident;
                 if (conu == 0 || coni == 0) {
-                    wu = lamda;
-                    wi = 1-lamda;
+                    // TODO:这里需要更好的利用conu和coni的方法
+                    if (conu != 0) {
+                        wu = lamda; // + conu/8;
+                        wi = 1 - wu;
+                    }
+                    else if (coni != 0)
+                    {
+                        wu = lamda; // - coni/8;
+                        wi = 1-wu;
+                    }
+                    else
+                    {
+                        wu = lamda;
+                        wi = 1-lamda;
+                    }
                 }
                 else
                 {
@@ -484,7 +517,7 @@ void UIPCC(const map<string, User> &userMap, const map<string, Business> &busine
             predictionFile << ++index << "," << prediction << endl;
         }
         
-        cout << "UPCC Count: " << upccCount << "\tIPCC Count: " << ipccCount << endl;
+//        cout << "UPCC Count: " << upccCount << "\tIPCC Count: " << ipccCount << endl;
     }
     submitionFile.close();
     predictionFile.close();
@@ -580,11 +613,25 @@ int main(int argc, const char * argv[])
     generateMatrix(sparseUBMatrix, userMap, businessMap, reviewSet);
     sparseUBMatrix.transposeMatrix(sparseBUMatrix);
     
-    PCC(sparseUBMatrix, userMap, businessMap, predictionUBMap); // UPCC
-    PCC(sparseBUMatrix, businessMap, userMap, predictionBUMap); // IPCC
+    
+    vector<User> userVec(rowCount);
+    vector<Business> businessVec(colCount);
+    // 根据userMap和businessMap生成userVec、businessVec
+    for (map<string, User>::iterator iter = userMap.begin(); iter != userMap.end(); ++iter) {
+        if (iter->second.sequence >= 0) {
+            userVec[iter->second.sequence] = iter->second;
+        }
+    }
+    for (map<string, Business>::iterator iter = businessMap.begin(); iter != businessMap.end(); ++iter) {
+        if (iter->second.sequence >= 0) {
+            businessVec[iter->second.sequence] = iter->second;
+        }
+    }
+    PCC(sparseUBMatrix, userMap, businessMap, businessVec, predictionUBMap); // UPCC
+    PCC(sparseBUMatrix, businessMap, userMap, userVec, predictionBUMap); // IPCC
     
 
-    float lamda = 0.05;
+    float lamda = 0;
     for (int i = 0; i < 19; ++i) {
         lamda += 0.05;
         UIPCC(userMap, businessMap, lamda);

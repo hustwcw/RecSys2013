@@ -10,7 +10,3 @@
 
 using namespace std;
 
-void dosome(int x)
-{
-    cout << x << endl;
-}
