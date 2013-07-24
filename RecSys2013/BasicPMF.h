@@ -10,18 +10,21 @@
 #define __RecSys2013__BasicPMF__
 
 #include <iostream>
-
+#include <map>
 
 
 #define UserSize        (1024*48)
 #define BusinessSize    (1024*12)
 template<class T>
 class SparseMatrix;
+class User;
+class Business;
+
 
 class BasicPMF {
     float lamda = 0.001;
-    float learnRate = 0.0005;
-    int maxIterNum = 100;
+    float learnRate = 0.00075;
+    int maxIterNum = 70;
     float iterThreshold = 0.005;
     
     float( *matrixP)[UserSize];
@@ -36,6 +39,7 @@ public:
     
     
     void compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<float> &transposeStarMatrix);
+    void predict(const std::map<std::string, User> &userMap, const std::map<std::string, Business> &businessMap);
     ~BasicPMF()
     {
         delete [] matrixP;

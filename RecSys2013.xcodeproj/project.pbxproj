@@ -11,6 +11,9 @@
 		BB4D093517864F05002107F6 /* RecSys2013.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = BB4D093417864F05002107F6 /* RecSys2013.1 */; };
 		BB4D0941178986E6002107F6 /* BasicPMF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BB4D093F178986E6002107F6 /* BasicPMF.cpp */; };
 		BB90EDE217951EF20023546F /* Util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BB90EDE017951EF20023546F /* Util.cpp */; };
+		BBA4BA46179FEA000003B338 /* User.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BBA4BA44179FEA000003B338 /* User.cpp */; };
+		BBA4BA49179FEA290003B338 /* Business.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BBA4BA47179FEA290003B338 /* Business.cpp */; };
+		BBA4BA4C179FEA460003B338 /* Review.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BBA4BA4A179FEA460003B338 /* Review.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -36,6 +39,13 @@
 		BB90EDE017951EF20023546F /* Util.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Util.cpp; sourceTree = "<group>"; };
 		BB90EDE117951EF20023546F /* Util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Util.h; sourceTree = "<group>"; };
 		BBA4BA41179AB1450003B338 /* result.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = result.txt; sourceTree = "<group>"; };
+		BBA4BA43179FE4390003B338 /* LFMResult.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LFMResult.txt; sourceTree = "<group>"; };
+		BBA4BA44179FEA000003B338 /* User.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = User.cpp; sourceTree = "<group>"; };
+		BBA4BA45179FEA000003B338 /* User.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = User.h; sourceTree = "<group>"; };
+		BBA4BA47179FEA290003B338 /* Business.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Business.cpp; sourceTree = "<group>"; };
+		BBA4BA48179FEA290003B338 /* Business.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Business.h; sourceTree = "<group>"; };
+		BBA4BA4A179FEA460003B338 /* Review.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Review.cpp; sourceTree = "<group>"; };
+		BBA4BA4B179FEA460003B338 /* Review.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Review.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -76,6 +86,13 @@
 				BB90EDE017951EF20023546F /* Util.cpp */,
 				BB90EDE117951EF20023546F /* Util.h */,
 				BBA4BA41179AB1450003B338 /* result.txt */,
+				BBA4BA43179FE4390003B338 /* LFMResult.txt */,
+				BBA4BA44179FEA000003B338 /* User.cpp */,
+				BBA4BA45179FEA000003B338 /* User.h */,
+				BBA4BA47179FEA290003B338 /* Business.cpp */,
+				BBA4BA48179FEA290003B338 /* Business.h */,
+				BBA4BA4A179FEA460003B338 /* Review.cpp */,
+				BBA4BA4B179FEA460003B338 /* Review.h */,
 			);
 			path = RecSys2013;
 			sourceTree = "<group>";
@@ -134,6 +151,9 @@
 				BB4D093317864F05002107F6 /* main.cpp in Sources */,
 				BB4D0941178986E6002107F6 /* BasicPMF.cpp in Sources */,
 				BB90EDE217951EF20023546F /* Util.cpp in Sources */,
+				BBA4BA46179FEA000003B338 /* User.cpp in Sources */,
+				BBA4BA49179FEA290003B338 /* Business.cpp in Sources */,
+				BBA4BA4C179FEA460003B338 /* Review.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

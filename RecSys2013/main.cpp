@@ -22,69 +22,15 @@
 #include "BasicPMF.h"
 #include "Util.h"
 #include "SparseMatrix.h"
+#include "User.h"
+#include "Business.h"
+#include "Review.h"
 
 
-#define LocalTest
+//#define LocalTest
 
 
 using namespace std;
-
-
-
-
-struct User {
-    int sequence;
-    float avgStar;
-    int reviewCount;
-    float confident;
-    
-    User(){}
-    
-    User(int theSequence, float theAvgStar, int theReviewCount)
-    :sequence(theSequence), avgStar(theAvgStar), reviewCount(theReviewCount)
-    {}
-};
-
-struct Business {
-    int sequence;
-    float avgStar;
-    int reviewCount;
-    float confident;
-    
-    Business(){}
-    
-    Business(int theSequence, float theAvgStar, int theReviewCount)
-    :sequence(theSequence), avgStar(theAvgStar), reviewCount(theReviewCount)
-    {}
-};
-
-
-struct Review {
-    string uid;
-    string bid;
-    float star;
-    
-    Review(string u, string b, float s)
-    :uid(u), bid(b), star(s)
-    {}
-    
-    bool operator < (const Review &other) const
-    {
-        if (uid < other.uid || (uid == other.uid && bid < other.bid)) {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-    
-    bool operator == (const Review &other) const
-    {
-        return (uid == other.uid && bid == other.bid);
-    }
-};
-
 
 
 map<string, float> result;  // 评分预测结果，key为uid与bid的连接
@@ -633,24 +579,25 @@ int main(int argc, const char * argv[])
         }
     }
     
-/*
-    PCC(sparseUBMatrix, userMap, businessMap, businessVec, predictionUBMap); // UPCC
-    PCC(sparseBUMatrix, businessMap, userMap, userVec, predictionBUMap); // IPCC
-    
 
-    float lamda = 0;
-    for (int i = 0; i < 19; ++i) {
-        lamda += 0.05;
-        UIPCC(userMap, businessMap, lamda);
-    }
-*/
-    for (int factor = 10; factor < 50; ++factor) {
-        cout << "\nfactor: " << factor << endl;
-        BasicPMF pmf(rowCount, colCount, factor);
+//    PCC(sparseUBMatrix, userMap, businessMap, businessVec, predictionUBMap); // UPCC
+//    PCC(sparseBUMatrix, businessMap, userMap, userVec, predictionBUMap); // IPCC
+//    
+//    float lamda = 0;
+//    for (int i = 0; i < 19; ++i) {
+//        lamda += 0.05;
+//        UIPCC(userMap, businessMap, lamda);
+//    }
+
+    
+    
+//    for (int factor = 10; factor < 100; ++factor) {
+//        cout << "\nfactor: " << factor << endl;
+        BasicPMF pmf(rowCount, colCount, 15);
         pmf.compute(sparseUBMatrix, sparseBUMatrix);
-        ++factor;
-    }
- 
+    pmf.predict(userMap, businessMap);
+//    }
+
     
     return 0;
 }
