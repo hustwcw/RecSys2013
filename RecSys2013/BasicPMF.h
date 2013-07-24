@@ -15,26 +15,27 @@
 
 #define UserSize        (1024*48)
 #define BusinessSize    (1024*12)
-
-struct SparseMatrix;
+template<class T>
+class SparseMatrix;
 
 class BasicPMF {
     float lamda = 0.001;
-    float sparsity = 0.05;
-    int latentDim = 10;
-    float learnRate = 0.0045;
-    int maxIterNum = 24;
+    float learnRate = 0.0005;
+    int maxIterNum = 100;
     float iterThreshold = 0.005;
     
     float( *matrixP)[UserSize];
     float (*matrixQ)[BusinessSize];
+    int userCount;
+    int businessCount;
+    int factor;
     
 public:
     BasicPMF(){}
-    BasicPMF(int userCount, int businessCount, int Factor);
+    BasicPMF(int uCount, int bCount, int f);
     
     
-    void compute(const SparseMatrix &starMatrix);
+    void compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<float> &transposeStarMatrix);
     ~BasicPMF()
     {
         delete [] matrixP;

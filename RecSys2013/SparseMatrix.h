@@ -16,8 +16,9 @@ struct Triple{
 };
 
 template <class T>
-struct SparseMatrix
+class SparseMatrix
 {
+public:
     Triple<T> *data; // 非零元三元组表，以行序或者为主序进行排列
     int *rpos;
     int mu, nu, tu; // 矩阵的行数，列数，非零元素的个数

@@ -632,6 +632,8 @@ int main(int argc, const char * argv[])
             businessVec[iter->second.sequence] = iter->second;
         }
     }
+    
+/*
     PCC(sparseUBMatrix, userMap, businessMap, businessVec, predictionUBMap); // UPCC
     PCC(sparseBUMatrix, businessMap, userMap, userVec, predictionBUMap); // IPCC
     
@@ -641,8 +643,14 @@ int main(int argc, const char * argv[])
         lamda += 0.05;
         UIPCC(userMap, businessMap, lamda);
     }
-
-    
+*/
+    for (int factor = 10; factor < 50; ++factor) {
+        cout << "\nfactor: " << factor << endl;
+        BasicPMF pmf(rowCount, colCount, factor);
+        pmf.compute(sparseUBMatrix, sparseBUMatrix);
+        ++factor;
+    }
+ 
     
     return 0;
 }
