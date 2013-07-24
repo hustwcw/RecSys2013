@@ -17,13 +17,14 @@
 #include <algorithm>
 #include <cmath>
 #include <sstream>
+#include <assert.h>
 
 #include "BasicPMF.h"
 #include "Util.h"
 #include "SparseMatrix.h"
 
 
-//#define LocalTest
+#define LocalTest
 
 
 using namespace std;
@@ -262,8 +263,12 @@ void PCC(const SparseMatrix<float> &sparseM,
                     // 列号相同，计算相似度
                     float tempa = sparseM.data[i].elem - userIter1->second.avgStar;
                     float tempu = sparseM.data[j].elem - userIter2->second.avgStar;
-                    float popWeight = 1.0/log10(1.0 + colVec[sparseM.data[i].j].reviewCount); // 对热门商品进行惩罚的权值 1/log(1+N(i))
-                    nominator += tempa * tempu * popWeight;
+//                    float tempa = sparseM.data[i].elem - colVec[sparseM.data[i].j].avgStar;
+//                    float tempu = sparseM.data[j].elem - colVec[sparseM.data[i].j].avgStar;
+                    // 需要实验确定对数的底是2好还是10好
+//                    assert(colVec[sparseM.data[i].j].sequence == sparseM.data[i].j);
+//                    float popWeight = 1.0/log(1.0 + colVec[sparseM.data[i].j].reviewCount); // 对热门商品进行惩罚的权值 1/log(1+N(i))
+                    nominator += tempa * tempu; // * popWeight; 该权重不能提高预测的准确度
                     denominator1 += tempa * tempa;
                     denominator2 += tempu * tempu;
                     intersectCount++;
@@ -283,7 +288,7 @@ void PCC(const SparseMatrix<float> &sparseM,
             if (nominator > 0 && denominator1 > 0 && denominator2 > 0) {
                 float weight = (2.0 * intersectCount / (userIter1->second.reviewCount + userIter2->second.reviewCount));
                 float sim = weight * (nominator / sqrt(denominator1 * denominator2));
-                if (sim > 0.015) {
+                if (sim > 0.005) {
                     ++insertSimCount;
                     simMap.insert(make_pair(userIter2->first, sim));
                 }
@@ -341,7 +346,7 @@ void PCC(const SparseMatrix<float> &sparseM,
             if (denominator > 0) {
                 if (nominator < 0) {
                     // 对低于平均值的打分进行降权
-                    nominator /= 4;
+                    nominator /= 8;
                 }
                 float predictStar = rowMap.find(userIter1->first)->second.avgStar + (nominator/denominator);
                 // 将计算结果插入到result中

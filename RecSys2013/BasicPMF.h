@@ -11,21 +11,34 @@
 
 #include <iostream>
 
-void dosome(int x);
+
+
+#define UserSize        (1024*48)
+#define BusinessSize    (1024*12)
+
+struct SparseMatrix;
 
 class BasicPMF {
-//    float lamda = 0.001;
-//    float sparsity = 0.05;
-//    int latentDim = 10;
-//    float learnRate = 0.0045;
-//    int maxIterNum = 24;
-//    float iterThreshold = 0.005;
+    float lamda = 0.001;
+    float sparsity = 0.05;
+    int latentDim = 10;
+    float learnRate = 0.0045;
+    int maxIterNum = 24;
+    float iterThreshold = 0.005;
     
+    float( *matrixP)[UserSize];
+    float (*matrixQ)[BusinessSize];
     
 public:
-    BasicPMF()
+    BasicPMF(){}
+    BasicPMF(int userCount, int businessCount, int Factor);
+    
+    
+    void compute(const SparseMatrix &starMatrix);
+    ~BasicPMF()
     {
-        
+        delete [] matrixP;
+        delete [] matrixQ;
     }
 };
 
