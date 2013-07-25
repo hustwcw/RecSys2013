@@ -40,12 +40,12 @@ BasicPMF::BasicPMF(int uCount, int bCount, int f)
 }
 
 
-void BasicPMF::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<float> &transposeStarMatrix)
+void BasicPMF::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<float> &transposeStarMatrix, const int maxIterCount)
 {
     double midRMSE = 10.0f;
     
     int count = 0;
-    while((midRMSE > iterThreshold) && (count < maxIterNum))   //只要其中一个条件不满足就停止
+    while((midRMSE > iterThreshold) && (count < maxIterCount))   //只要其中一个条件不满足就停止
     {
         float *term1 = new float[factor];
         float *term2 = new float[factor];
@@ -137,6 +137,7 @@ void BasicPMF::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix
         }
         
     }//while(...)
+    iterCount = count;
 }
 
 void BasicPMF::predict(const map<string, User> &userMap, const map<string, Business> &businessMap)
@@ -148,7 +149,7 @@ void BasicPMF::predict(const map<string, User> &userMap, const map<string, Busin
     predictionFileName << "/Users/jtang1/Desktop/test2013/prediction/prediction2_lamda_" << lamda << ".csv";
 #else
     ifstream submitionFile = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
-    predictionFileName << "/Users/jtang1/Desktop/2013/predictionLFM/prediction_" << factor << ".csv";
+    predictionFileName << "/Users/jtang1/Desktop/2013/predictionLFM/prediction_factor_" << factor << "_iter_" << iterCount << ".csv";
 #endif
     
     ofstream predictionFile = ofstream(predictionFileName.str());

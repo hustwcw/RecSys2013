@@ -24,7 +24,6 @@ class Business;
 class BasicPMF {
     float lamda = 0.001;
     float learnRate = 0.00075;
-    int maxIterNum = 70;
     float iterThreshold = 0.005;
     
     float( *matrixP)[UserSize];
@@ -32,13 +31,13 @@ class BasicPMF {
     int userCount;
     int businessCount;
     int factor;
-    
+    int iterCount;
 public:
     BasicPMF(){}
     BasicPMF(int uCount, int bCount, int f);
     
     
-    void compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<float> &transposeStarMatrix);
+    void compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<float> &transposeStarMatrix, const int maxIterCount);
     void predict(const std::map<std::string, User> &userMap, const std::map<std::string, Business> &businessMap);
     ~BasicPMF()
     {

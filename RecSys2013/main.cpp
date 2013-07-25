@@ -594,7 +594,7 @@ int main(int argc, const char * argv[])
 //    for (int factor = 10; factor < 100; ++factor) {
 //        cout << "\nfactor: " << factor << endl;
         BasicPMF pmf(rowCount, colCount, 15);
-        pmf.compute(sparseUBMatrix, sparseBUMatrix);
+        pmf.compute(sparseUBMatrix, sparseBUMatrix, 70);
     pmf.predict(userMap, businessMap);
 //    }
 
