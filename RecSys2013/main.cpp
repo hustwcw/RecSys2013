@@ -20,6 +20,7 @@
 #include <assert.h>
 
 #include "BasicPMF.h"
+#include "BiasSVD.h"
 #include "Util.h"
 #include "SparseMatrix.h"
 #include "User.h"
@@ -593,11 +594,17 @@ int main(int argc, const char * argv[])
     
 //    for (int factor = 10; factor < 100; ++factor) {
 //        cout << "\nfactor: " << factor << endl;
-        BasicPMF pmf(rowCount, colCount, 15);
-        pmf.compute(sparseUBMatrix, sparseBUMatrix, 70);
-    pmf.predict(userMap, businessMap);
+//        BasicPMF pmf(rowCount, colCount, 15);
+//        pmf.compute(sparseUBMatrix, sparseBUMatrix, 70);
+//    pmf.predict(userMap, businessMap);
 //    }
 
+    for (int factor = 20; factor < 21; ++factor) {
+        cout << "\nfactor: " << factor << endl;
+        BiasSVD biasSVD(rowCount, colCount, factor);
+        biasSVD.compute(sparseUBMatrix, sparseBUMatrix, 1000);
+    biasSVD.predict(userMap, businessMap, true);
+    }
     
     return 0;
 }

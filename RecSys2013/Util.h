@@ -11,6 +11,12 @@
 
 #include <iostream>
 
+#define UserSize        (1024*48)
+#define BusinessSize    (1024*12)
+#define GlobalAvg       (3.766723)
+
+
+
 // 对数据集的特征进行简单的分析
 void analyzeDataSet();
 

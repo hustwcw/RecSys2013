@@ -14,6 +14,7 @@
 		BBA4BA46179FEA000003B338 /* User.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BBA4BA44179FEA000003B338 /* User.cpp */; };
 		BBA4BA49179FEA290003B338 /* Business.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BBA4BA47179FEA290003B338 /* Business.cpp */; };
 		BBA4BA4C179FEA460003B338 /* Review.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BBA4BA4A179FEA460003B338 /* Review.cpp */; };
+		BBA4BA4F17A102310003B338 /* BiasSVD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BBA4BA4D17A102310003B338 /* BiasSVD.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -46,6 +47,8 @@
 		BBA4BA48179FEA290003B338 /* Business.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Business.h; sourceTree = "<group>"; };
 		BBA4BA4A179FEA460003B338 /* Review.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Review.cpp; sourceTree = "<group>"; };
 		BBA4BA4B179FEA460003B338 /* Review.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Review.h; sourceTree = "<group>"; };
+		BBA4BA4D17A102310003B338 /* BiasSVD.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BiasSVD.cpp; sourceTree = "<group>"; };
+		BBA4BA4E17A102310003B338 /* BiasSVD.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BiasSVD.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,6 +85,8 @@
 				BB4D093417864F05002107F6 /* RecSys2013.1 */,
 				BB4D093F178986E6002107F6 /* BasicPMF.cpp */,
 				BB4D0940178986E6002107F6 /* BasicPMF.h */,
+				BBA4BA4D17A102310003B338 /* BiasSVD.cpp */,
+				BBA4BA4E17A102310003B338 /* BiasSVD.h */,
 				BB4D094217899BB8002107F6 /* SparseMatrix.h */,
 				BB90EDE017951EF20023546F /* Util.cpp */,
 				BB90EDE117951EF20023546F /* Util.h */,
@@ -154,6 +159,7 @@
 				BBA4BA46179FEA000003B338 /* User.cpp in Sources */,
 				BBA4BA49179FEA290003B338 /* Business.cpp in Sources */,
 				BBA4BA4C179FEA460003B338 /* Review.cpp in Sources */,
+				BBA4BA4F17A102310003B338 /* BiasSVD.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
