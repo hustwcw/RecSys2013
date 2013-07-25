@@ -11,7 +11,7 @@
 #include <set>
 #include <string>
 #include <fstream>
-
+#include <cmath>
 
 using namespace std;
 
@@ -87,4 +87,32 @@ void analyzeDataSet()
     cout << "Only B: " << Bcount << endl;
     cout << "None: " << NUBcount << endl;
     cout << "All: " << UBcount+Ucount+Bcount+NUBcount << endl;
+}
+
+
+float computeRMSE(const string &predictionFileName)
+{
+    ifstream testReviewFile("/Users/jtang1/Desktop/test2013/test_review.json");
+    ifstream predictionFile(predictionFileName);
+    
+    float sum = 0;
+    int n = 0;
+    if (testReviewFile.is_open() && predictionFile.is_open()) {
+        while (!testReviewFile.eof() && !predictionFile.eof()) {
+            string testLine, predictionLine;
+            getline(testReviewFile, testLine);
+            getline(predictionFile, predictionLine);
+            
+            size_t start = testLine.find("\"stars\"", 124);
+            float testStar = (float)atoi(testLine.substr(start+9, 1).c_str());
+            
+            start = predictionLine.find(",");
+            float predictionStar = atof(predictionLine.substr(start+1, predictionLine.length()-start-1).c_str());
+            
+            sum += ((testStar - predictionStar) * (testStar - predictionStar));
+            ++n;
+        }
+    }
+    
+    return sqrt(sum/n);
 }

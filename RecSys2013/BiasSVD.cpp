@@ -29,28 +29,12 @@ BiasSVD::BiasSVD(int uCount, int bCount, int f)
     matrixQ = new float[factor][BusinessSize];
     for (int i = 0; i < factor; ++i) {
         for (int j = 0; j < UserSize; ++j) {
-            int sign = 0;
-            if (rand()%2 == 0) {
-                sign = 1;
-            }
-            else
-            {
-                sign = -1;
-            }
-            matrixP[i][j] = sign * sqrt((6.2)/(factor));
+            matrixP[i][j] = SmallRandom;
         }
     }
     for (int i = 0; i < factor; ++i) {
         for (int j = 0; j < BusinessSize; ++j) {
-            int sign = 0;
-            if (rand()%2 == 0) {
-                sign = 1;
-            }
-            else
-            {
-                sign = -1;
-            }
-            matrixQ[i][j] = sign * sqrt((6.2)/(10.0 * factor));
+            matrixQ[i][j] = SmallRandom;
         }
     }
     for (int i = 0; i < UserSize; ++i) {
@@ -61,109 +45,14 @@ BiasSVD::BiasSVD(int uCount, int bCount, int f)
     }
 }
 
-
-void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<float> &transposeStarMatrix, const int maxIterCount)
+void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<float> &transposeStarMatrix, const int maxIterCount, const map<string, User> &userMap, const map<string, Business> &businessMap)
 {
     double midRMSE = 10.0f;
     
     int count = 0;
+    float *term1 = new float[factor];
     while((midRMSE > iterThreshold) && (count < maxIterCount))   //只要其中一个条件不满足就停止
     {
-        float *term1 = new float[factor];
-        float *term2 = new float[factor];
-        // 计算matrixP
-        for (int i = 0; i < factor; ++i) {
-            term1[i] = 0;
-        }
-        for (int index = 0; index < starMatrix.tu; ++index) {
-            float temp = 0;
-            int row = starMatrix.data[index].i;
-            int col = starMatrix.data[index].j;
-            for (int k = 0; k < factor; ++k) {
-                temp += (matrixP[k][row] * matrixQ[k][col]);
-            }
-            temp -= starMatrix.data[index].elem;
-            for (int i = 0; i < factor; ++i) {
-                term1[i] += (temp * matrixQ[i][col]);
-            }
-            
-            // 如果一行计算结束:下一行的起始位置是否等于当前位置加一
-            if (starMatrix.rpos[row+1] == (index+1)) {
-                for (int i = 0; i < factor; ++i) {
-                    term2[i] = lamda * matrixP[i][row];
-                }
-                // 梯度下降
-                for (int i = 0; i < factor; ++i) {
-                    matrixP[i][row] -= learnRate * (term1[i] + term2[i]);
-                }
-                
-                for (int i = 0; i < factor; ++i) {
-                    term1[i] = 0;
-                }
-            }
-        }
-        
-        // 计算matrixQ
-        for (int i = 0; i < factor; ++i) {
-            term1[i] = 0;
-        }
-        for (int index = 0; index < transposeStarMatrix.tu; ++index) {
-            float temp = 0;
-            int row = transposeStarMatrix.data[index].i;
-            int col = transposeStarMatrix.data[index].j;
-            for (int k = 0; k < factor; ++k) {
-                temp += (matrixP[k][col] * matrixQ[k][row]);
-            }
-            temp -= transposeStarMatrix.data[index].elem;
-            for (int i = 0; i < factor; ++i) {
-                term1[i] += (temp * matrixP[i][col]);
-            }
-            
-            if (transposeStarMatrix.rpos[row + 1] == (index+1)) {
-                for (int i = 0; i < factor; ++i) {
-                    term2[i] = lamda * matrixQ[i][row];
-                }
-                // 梯度下降
-                for (int i = 0; i < factor; ++i) {
-                    matrixQ[i][row] -= learnRate * (term1[i]+term2[i]);
-                }
-                
-                for (int i = 0; i < factor; ++i) {
-                    term1[i] = 0;
-                }
-            }
-        }
-
-        // 计算RMSE
-        float sum = 0;
-        for (int index = 0; index < starMatrix.tu; ++index) {
-            float temp = 0;
-            int row = starMatrix.data[index].i;
-            int col = starMatrix.data[index].j;
-            for (int i = 0; i < factor; ++i) {
-                temp += (matrixP[i][row] * matrixQ[i][col]);
-            }
-            sum += (temp - starMatrix.data[index].elem) * (temp - starMatrix.data[index].elem);
-        }
-        midRMSE = sqrt(sum/starMatrix.tu);
-        ++count;
-        if (midRMSE < 1.0) {
-            cout << count << ":\t" << midRMSE << endl;
-        }
-        
-    }//while(...)
-    iterCount = count;
-}
-
-void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<float> &transposeStarMatrix, const int maxIterCount)
-{
-    double midRMSE = 10.0f;
-    
-    int count = 0;
-    while((midRMSE > iterThreshold) && (count < maxIterCount))   //只要其中一个条件不满足就停止
-    {
-        float *term1 = new float[factor];
-        float *term2 = new float[factor];
         float derivativeUbias = 0;
         float derivativeBbias = 0;
         // 计算matrixP & ubias
@@ -186,12 +75,9 @@ void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<
             
             // 如果一行计算结束:下一行的起始位置是否等于当前位置加一
             if (starMatrix.rpos[row+1] == (index+1)) {
-                for (int i = 0; i < factor; ++i) {
-                    term2[i] = lamda * matrixP[i][row];
-                }
                 // 梯度下降
                 for (int i = 0; i < factor; ++i) {
-                    matrixP[i][row] -= learnRate * (term1[i] + term2[i]);
+                    matrixP[i][row] -= learnRate * (term1[i] + lamda * matrixP[i][row]);
                 }
                 ubias[row] -= (learnRate * derivativeUbias);
                 
@@ -222,12 +108,9 @@ void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<
             derivativeBbias += temp;
             
             if (transposeStarMatrix.rpos[row + 1] == (index+1)) {
-                for (int i = 0; i < factor; ++i) {
-                    term2[i] = lamda * matrixQ[i][row];
-                }
                 // 梯度下降
                 for (int i = 0; i < factor; ++i) {
-                    matrixQ[i][row] -= learnRate * (term1[i]+term2[i]);
+                    matrixQ[i][row] -= learnRate * (term1[i] + lamda * matrixQ[i][row]);
                 }
                 bbias[row] -= (learnRate * derivativeBbias);
                 
@@ -257,18 +140,22 @@ void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<
             cout << count << ":\t" << midRMSE << endl;
         }
     
+        if (count > 20 && (count % 5 == 0)) {
+            predict(userMap, businessMap);
+        }
     }//while(...)
+    delete [] term1;
     iterCount = count;
 }
 
 
-void BiasSVD::predict(const map<string, User> &userMap, const map<string, Business> &businessMap, bool bias)
+void BiasSVD::predict(const map<string, User> &userMap, const map<string, Business> &businessMap)
 {
     stringstream predictionFileName;
     
 #ifdef LocalTest
     ifstream submitionFile = ifstream("/Users/jtang1/Desktop/test2013/test_review.json");
-    predictionFileName << "/Users/jtang1/Desktop/test2013/prediction/prediction2_lamda_" << lamda << ".csv";
+    predictionFileName << "/Users/jtang1/Desktop/test2013/prediction/prediction_factor" << factor << "_iter" << iterCount << ".csv";
 #else
     ifstream submitionFile = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
     predictionFileName << "/Users/jtang1/Desktop/2013/predictionLFM/prediction_factor" << factor << "_iter" << iterCount << ".csv";
@@ -310,9 +197,7 @@ void BiasSVD::predict(const map<string, User> &userMap, const map<string, Busine
                     for (int i = 0; i < factor; ++i) {
                         prediction += (matrixP[i][userIter->second.sequence] * matrixQ[i][businessIter->second.sequence]);
                     }
-                    if (bias) {
-                        prediction += (GlobalAvg + ubias[userIter->second.sequence] + bbias[businessIter->second.sequence]);
-                    }
+                    prediction += (GlobalAvg + ubias[userIter->second.sequence] + bbias[businessIter->second.sequence]);
                     ++lfmCount;
                 }
                 else
@@ -352,6 +237,6 @@ void BiasSVD::predict(const map<string, User> &userMap, const map<string, Busine
     predictionFile.close();
     
 #ifdef LocalTest
-//    cout << computeRMSE(predictionFileName.str()) << endl;
+    cout << computeRMSE(predictionFileName.str()) << endl;
 #endif
 }

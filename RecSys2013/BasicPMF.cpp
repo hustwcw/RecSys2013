@@ -29,18 +29,18 @@ BasicPMF::BasicPMF(int uCount, int bCount, int f)
     matrixQ = new float[factor][BusinessSize];
     for (int i = 0; i < factor; ++i) {
         for (int j = 0; j < UserSize; ++j) {
-            matrixP[i][j] = sqrt(((rand()%5)+1.0)/(float)factor);
+            matrixP[i][j] = sqrt((GlobalAvg)/(float)factor) + SmallRandom;
         }
     }
     for (int i = 0; i < factor; ++i) {
         for (int j = 0; j < BusinessSize; ++j) {
-            matrixQ[i][j] = sqrt(((rand()%5)+1.0)/(float)factor);
+            matrixQ[i][j] = sqrt((GlobalAvg)/(float)factor) + SmallRandom;
         }
     }
 }
 
 
-void BasicPMF::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<float> &transposeStarMatrix, const int maxIterCount)
+void BasicPMF::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<float> &transposeStarMatrix, const int maxIterCount, const map<string, User> &userMap, const map<string, Business> &businessMap)
 {
     double midRMSE = 10.0f;
     
@@ -71,9 +71,6 @@ void BasicPMF::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix
                     term2[i] = lamda * matrixP[i][row];
                 }
                 
-//                for (int i = 0; i < factor; ++i) {
-//                    cout << term1[i] << "\t" << term2[i] << endl;
-//                }
                 // 梯度下降
                 for (int i = 0; i < factor; ++i) {
                     matrixP[i][row] -= learnRate * (term1[i] + term2[i]);
@@ -105,9 +102,7 @@ void BasicPMF::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix
                 for (int i = 0; i < factor; ++i) {
                     term2[i] = lamda * matrixQ[i][row];
                 }
-//                for (int i = 0; i < factor; ++i) {
-//                    cout << term1[i] << "\t" << term2[i] << endl;
-//                }
+                
                 // 梯度下降
                 for (int i = 0; i < factor; ++i) {
                     matrixQ[i][row] -= learnRate * (term1[i]+term2[i]);
@@ -136,6 +131,9 @@ void BasicPMF::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix
             cout << count << ":\t" << midRMSE << endl;
         }
         
+//        if (count > 40 && (count % 5 == 0)) {
+//            predict(userMap, businessMap);
+//        }
     }//while(...)
     iterCount = count;
 }
@@ -146,10 +144,10 @@ void BasicPMF::predict(const map<string, User> &userMap, const map<string, Busin
     
 #ifdef LocalTest
     ifstream submitionFile = ifstream("/Users/jtang1/Desktop/test2013/test_review.json");
-    predictionFileName << "/Users/jtang1/Desktop/test2013/prediction/prediction2_lamda_" << lamda << ".csv";
+    predictionFileName << "/Users/jtang1/Desktop/test2013/prediction/prediction_factor" << factor << "_iter" << iterCount << ".csv";
 #else
     ifstream submitionFile = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
-    predictionFileName << "/Users/jtang1/Desktop/2013/predictionLFM/prediction_factor_" << factor << "_iter_" << iterCount << ".csv";
+    predictionFileName << "/Users/jtang1/Desktop/2013/predictionLFM/prediction_factor" << factor << "_iter" << iterCount << ".csv";
 #endif
     
     ofstream predictionFile = ofstream(predictionFileName.str());
@@ -227,6 +225,6 @@ void BasicPMF::predict(const map<string, User> &userMap, const map<string, Busin
     predictionFile.close();
     
 #ifdef LocalTest
-//    cout << computeRMSE(predictionFileName.str()) << endl;
+    cout << computeRMSE(predictionFileName.str()) << endl;
 #endif
 }

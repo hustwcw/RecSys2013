@@ -28,7 +28,6 @@
 #include "Review.h"
 
 
-//#define LocalTest
 
 
 using namespace std;
@@ -308,33 +307,6 @@ void PCC(const SparseMatrix<float> &sparseM,
 }
 
 
-float computeRMSE(const string &predictionFileName)
-{
-    ifstream testReviewFile("/Users/jtang1/Desktop/test2013/test_review.json");
-    ifstream predictionFile(predictionFileName);
-    
-    float sum = 0;
-    int n = 0;
-    if (testReviewFile.is_open() && predictionFile.is_open()) {
-        while (!testReviewFile.eof() && !predictionFile.eof()) {
-            string testLine, predictionLine;
-            getline(testReviewFile, testLine);
-            getline(predictionFile, predictionLine);
-            
-            size_t start = testLine.find("\"stars\"", 124);
-            float testStar = (float)atoi(testLine.substr(start+9, 1).c_str());
-            
-            start = predictionLine.find(",");
-            float predictionStar = atof(predictionLine.substr(start+1, predictionLine.length()-start-1).c_str());
-            
-            sum += ((testStar - predictionStar) * (testStar - predictionStar));
-            ++n;
-        }
-    }
-    
-    return sqrt(sum/n);
-}
-
 void UIPCC(const map<string, User> &userMap, const map<string, Business> &businessMap, float lamda)
 {
     stringstream predictionFileName;
@@ -592,18 +564,18 @@ int main(int argc, const char * argv[])
 
     
     
-//    for (int factor = 10; factor < 100; ++factor) {
-//        cout << "\nfactor: " << factor << endl;
-//        BasicPMF pmf(rowCount, colCount, 15);
-//        pmf.compute(sparseUBMatrix, sparseBUMatrix, 70);
-//    pmf.predict(userMap, businessMap);
-//    }
-
     for (int factor = 20; factor < 21; ++factor) {
         cout << "\nfactor: " << factor << endl;
+        BasicPMF pmf(rowCount, colCount, factor);
+        pmf.compute(sparseUBMatrix, sparseBUMatrix, 60, userMap, businessMap);
+    pmf.predict(userMap, businessMap);
+    }
+
+    for (int factor = 10; factor < 10; ++factor) {
+        cout << "\nfactor: " << factor << endl;
         BiasSVD biasSVD(rowCount, colCount, factor);
-        biasSVD.compute(sparseUBMatrix, sparseBUMatrix, 1000);
-    biasSVD.predict(userMap, businessMap, true);
+        biasSVD.compute(sparseUBMatrix, sparseBUMatrix, 100, userMap, businessMap);
+//    biasSVD.predict(userMap, businessMap);
     }
     
     return 0;
