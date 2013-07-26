@@ -138,7 +138,7 @@ void BasicPMF::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix
     iterCount = count;
 }
 
-void BasicPMF::predict(const map<string, User> &userMap, const map<string, Business> &businessMap)
+void BasicPMF::predict(const map<string, User> &userMap, const map<string, Business> &businessMap, const map<string, Business> &testBusinessMap, const map<string, float> &cityAvgMap)
 {
     stringstream predictionFileName;
     
@@ -206,7 +206,16 @@ void BasicPMF::predict(const map<string, User> &userMap, const map<string, Busin
             }
             else
             {
-                prediction = 3.766723;
+                map<string, Business>::const_iterator testBusinessIter = testBusinessMap.find(bid);
+                map<string, float>::const_iterator cityAvgIter = cityAvgMap.find(testBusinessIter->second.city);
+                if (testBusinessIter != testBusinessMap.end() && cityAvgIter != cityAvgMap.end()) {
+                    //prediction = cityAvgIter->second;
+                    prediction = GlobalAvg;
+                }
+                else
+                {
+                    prediction = GlobalAvg;
+                }
                 ++globalCount;
             }
             

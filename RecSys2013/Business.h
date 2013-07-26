@@ -17,11 +17,12 @@ struct Business {
     float avgStar;
     int reviewCount;
     float confident;
+    std::string city;
     
     Business(){}
     
-    Business(int theSequence, float theAvgStar, int theReviewCount)
-    :sequence(theSequence), avgStar(theAvgStar), reviewCount(theReviewCount)
+    Business(int theSequence, float theAvgStar, int theReviewCount, const std::string &theCity)
+    :sequence(theSequence), avgStar(theAvgStar), reviewCount(theReviewCount), city(theCity)
     {}
 };
 

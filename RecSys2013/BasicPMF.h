@@ -37,7 +37,7 @@ public:
     
     
     void compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<float> &transposeStarMatrix, const int maxIterCount, const std::map<std::string, User> &userMap, const std::map<std::string, Business> &businessMap);
-    void predict(const std::map<std::string, User> &userMap, const std::map<std::string, Business> &businessMap);
+    void predict(const std::map<std::string, User> &userMap, const std::map<std::string, Business> &businessMap, const std::map<std::string, Business> &testBusinessMap, const std::map<std::string, float> &cityAvgMap);
     ~BasicPMF()
     {
         delete [] matrixP;

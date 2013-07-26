@@ -35,7 +35,7 @@ using namespace std;
 
 map<string, float> result;  // 评分预测结果，key为uid与bid的连接
 
-void loadTrainingSet(map<string, User> &userMap, map<string, Business> &businessMap, set<Review> &reviewSet, int &rowCount, int &colCount)
+void loadTrainingSet(map<string, User> &userMap, map<string, Business> &businessMap, map<string, Business> &testBusinessMap, set<Review> &reviewSet, int &rowCount, int &colCount, map<string, float> &cityAvgMap)
 {
 #ifdef LocalTest
     ifstream trainingReviewFile = ifstream("/Users/jtang1/Desktop/test2013/training_review.json");
@@ -67,7 +67,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             
             map<string, Business>::iterator businessIter;
             if ((businessIter = businessMap.find(bid)) == businessMap.end()) {
-                businessMap.insert(make_pair(bid, Business(0, stars, 1)));
+                businessMap.insert(make_pair(bid, Business(0, stars, 1, "")));
             }
             else
             {
@@ -87,6 +87,9 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     for (map<string, User>::iterator iter = userMap.begin(); iter != userMap.end(); ++iter) {
         iter->second.avgStar /= iter->second.reviewCount;
         iter->second.sequence = sequence++;
+        if (iter->second.avgStar == 0) {
+            cout << iter->second.avgStar << endl;
+        }
     }
     rowCount = sequence;
     
@@ -115,7 +118,10 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             int review_count = atoi(line.substr(start+16, end-start-16).c_str());
             map<string, User>::iterator userIter = userMap.find(uid);
             if (userIter != userMap.end()) {
-                userIter->second.avgStar = avg_stars;
+                // id 为：KQnq1p-PlWUo-qPEtWtmMw 的用户在training_set_user里面的平均分是0，从review里计算的平均分是3
+                if (avg_stars > 0) {
+                    userIter->second.avgStar = avg_stars;
+                }
 //                userIter->second.reviewCount = review_count;
             }
             else
@@ -137,15 +143,55 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             start = line.find("\"review_count\"");
             end = line.find(",", start);
             int review_count = atoi(line.substr(start+16, end-start-16).c_str());
+            
+            start = line.find("\"city\"");
+            end = line.find(",", start);
+            string city = line.substr(start + 9, end - start - 10);
+            
             map<string, Business>::iterator businessIter = businessMap.find(bid);
             if (businessIter != businessMap.end()) {
                 businessIter->second.avgStar = avg_stars;
+                businessIter->second.city = city;
 //                businessIter->second.reviewCount = review_count;
             }
             else
             {
-                businessMap.insert(make_pair(bid, Business(-1, avg_stars, review_count)));
+                businessMap.insert(make_pair(bid, Business(-1, avg_stars, review_count, city)));
             }
+        }
+    }
+    
+    // load test_set_business to testBusinessMap
+    ifstream testSetBusinessFile("/Users/jtang1/Desktop/2013/yelp_test_set/yelp_test_set_business.json");
+    if (testSetBusinessFile.is_open()) {
+        while (!testSetBusinessFile.eof()) {
+            string line;
+            getline(testSetBusinessFile, line);
+            size_t start, end;
+            start = line.find("\"business_id\"");
+            end = line.find(",", start);
+            string bid = line.substr(start+16, end - start - 17);
+            
+            start = line.find("\"city\"");
+            end = line.find(",", start);
+            string city = line.substr(start + 9, end - start - 10);
+            
+            testBusinessMap.insert(make_pair(bid, Business(-1, 0, 0, city)));
+        }
+    }
+    
+    // load city avg star
+    ifstream cityAvgFile("/Users/jtang1/Desktop/2013/CityAvgStar.txt");
+    if (cityAvgFile.is_open()) {
+        string line;
+        getline(cityAvgFile, line);
+        while (!cityAvgFile.eof()) {
+            getline(cityAvgFile, line);
+            size_t pos = line.find(",");
+            string city = line.substr(0, pos);
+            size_t end = line.find(",", pos+1);
+            float avgStar = atof(line.substr(pos+1, end - pos - 1).c_str());
+            cityAvgMap.insert(make_pair(city, avgStar));
         }
     }
 }
@@ -494,7 +540,9 @@ int main(int argc, const char * argv[])
 {
     map<string, User> userMap;
     map<string, Business> businessMap;
+    map<string, Business> testBusinessMap;
     set<Review> reviewSet;
+    map<string, float> cityAvgMap;
     multimap<string, string> predictionUBMap;     // 需要预测的uid和bid
     multimap<string, string> predictionBUMap;     // 需要预测的bid和uid
 
@@ -530,7 +578,7 @@ int main(int argc, const char * argv[])
     
     
     int rowCount, colCount;
-    loadTrainingSet(userMap, businessMap, reviewSet, rowCount, colCount);
+    loadTrainingSet(userMap, businessMap, testBusinessMap, reviewSet, rowCount, colCount, cityAvgMap);
     // 生成稀疏矩阵
     SparseMatrix<float> sparseUBMatrix(static_cast<int>(reviewSet.size()), rowCount, colCount);
     SparseMatrix<float> sparseBUMatrix(static_cast<int>(reviewSet.size()), colCount, rowCount);
@@ -564,19 +612,19 @@ int main(int argc, const char * argv[])
 
     
     
-    for (int factor = 20; factor < 21; ++factor) {
+    for (int factor = 25; factor < 26; ++factor) {
         cout << "\nfactor: " << factor << endl;
         BasicPMF pmf(rowCount, colCount, factor);
         pmf.compute(sparseUBMatrix, sparseBUMatrix, 60, userMap, businessMap);
-    pmf.predict(userMap, businessMap);
+    pmf.predict(userMap, businessMap, testBusinessMap, cityAvgMap);
     }
 
-    for (int factor = 10; factor < 10; ++factor) {
-        cout << "\nfactor: " << factor << endl;
-        BiasSVD biasSVD(rowCount, colCount, factor);
-        biasSVD.compute(sparseUBMatrix, sparseBUMatrix, 100, userMap, businessMap);
+//    for (int factor = 10; factor < 10; ++factor) {
+//        cout << "\nfactor: " << factor << endl;
+//        BiasSVD biasSVD(rowCount, colCount, factor);
+//        biasSVD.compute(sparseUBMatrix, sparseBUMatrix, 100, userMap, businessMap);
 //    biasSVD.predict(userMap, businessMap);
-    }
+//    }
     
     return 0;
 }
