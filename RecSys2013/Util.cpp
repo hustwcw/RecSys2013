@@ -116,3 +116,33 @@ float computeRMSE(const string &predictionFileName)
     
     return sqrt(sum/n);
 }
+
+
+void loadDataToPredict(map<string, string> &predictionMap, map<string, string> &transposePredictionMap)
+{
+    // TODO:这里需要修改文件名
+    ifstream submitionFile = ifstream(FolderName + "sampleSubmission.csv");
+    // 将需要预测的数据读入predictionMap
+    if (submitionFile.is_open())
+    {
+        string line;
+        getline(submitionFile, line);
+        while (!submitionFile.eof())
+        {
+            getline(submitionFile, line);
+            // TODO:下面的代码需要修改
+#ifdef LocalTest
+            size_t start;
+            start = line.find("\"user_id\"");
+            string uid = line.substr(start+12, 22);
+            string bid = line.substr(line.length() - 24, 22);
+#else
+            string uid = line.substr(0, 22);
+            string bid = line.substr(23, 22);
+#endif
+            predictionUBMap.insert(make_pair(uid, bid));
+            predictionBUMap.insert(make_pair(bid, uid));
+        }
+    }
+    submitionFile.close();
+}

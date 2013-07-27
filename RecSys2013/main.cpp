@@ -35,13 +35,10 @@ using namespace std;
 
 map<string, float> result;  // 评分预测结果，key为uid与bid的连接
 
+
 void loadTrainingSet(map<string, User> &userMap, map<string, Business> &businessMap, map<string, Business> &testBusinessMap, set<Review> &reviewSet, int &rowCount, int &colCount, map<string, float> &cityAvgMap)
 {
-#ifdef LocalTest
-    ifstream trainingReviewFile = ifstream("/Users/jtang1/Desktop/test2013/training_review.json");
-#else
-    ifstream trainingReviewFile = ifstream("/Users/jtang1/Desktop/2013/yelp_training_set/yelp_training_set_review.json");
-#endif
+    ifstream trainingReviewFile = ifstream(FolderName + "yelp_training_set/yelp_training_set_review.json");
 
     // 对于training_set_review根据uid和bid进行排序，便于直接生成稀疏矩阵
     if (trainingReviewFile.is_open()) {
@@ -52,10 +49,10 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             string uid = line.substr(start+12, 22);
             string bid = line.substr(line.length() - 24, 22);
             start = line.find("\"stars\"", 124);
-            float stars = (float)atoi(line.substr(start+9, 1).c_str());
+            float stars = atof(line.substr(start+9, 1).c_str());
             
-            map<string, User>::iterator userIter;
-            if ((userIter = userMap.find(uid)) == userMap.end()) {
+            map<string, User>::iterator userIter = userMap.find(uid);
+            if (userIter == userMap.end()) {
                 userMap.insert(make_pair(uid, User(0, stars, 1)));
             }
             else
@@ -65,8 +62,8 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
                 userIter->second.avgStar += stars;
             }
             
-            map<string, Business>::iterator businessIter;
-            if ((businessIter = businessMap.find(bid)) == businessMap.end()) {
+            map<string, Business>::iterator businessIter = businessMap.find(bid);
+            if (businessIter == businessMap.end()) {
                 businessMap.insert(make_pair(bid, Business(0, stars, 1, "")));
             }
             else
@@ -77,6 +74,10 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             
             reviewSet.insert(Review(uid, bid, stars));
         }
+    }
+    else
+    {
+        cout << "can't open file" << endl;
     }
     trainingReviewFile.close();
     
@@ -91,7 +92,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             cout << iter->second.avgStar << endl;
         }
     }
-    rowCount = sequence;
+    rowCount = sequence;    // 返回review_set中出现的用户数
     
     // 根据商家ID的字符串顺序调整商家在矩阵中的位置
     // 计算商家打分的平均分
@@ -100,10 +101,10 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
         iter->second.avgStar /= iter->second.reviewCount;
         iter->second.sequence = sequence++;
     }
-    colCount = sequence;
+    colCount = sequence;    // 返回review_set中出现的商家树
     
     // load training_set_user to userMap
-    ifstream trainingSetUserFile("/Users/jtang1/Desktop/2013/yelp_training_set/yelp_training_set_user.json");
+    ifstream trainingSetUserFile(FolderName + "yelp_training_set/yelp_training_set_user.json");
     if (trainingSetUserFile.is_open()) {
         while (!trainingSetUserFile.eof()) {
             string line;
@@ -121,8 +122,8 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
                 // id 为：KQnq1p-PlWUo-qPEtWtmMw 的用户在training_set_user里面的平均分是0，从review里计算的平均分是3
                 if (avg_stars > 0) {
                     userIter->second.avgStar = avg_stars;
+                    userIter->second.reviewCount = review_count;
                 }
-//                userIter->second.reviewCount = review_count;
             }
             else
             {
@@ -130,8 +131,14 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             }
         }
     }
+    else
+    {
+        cout << "can't open file" << endl;
+    }
+    trainingSetUserFile.close();
+
     // load training_set_business to businessMap
-    ifstream trainingSetBusinessFile("/Users/jtang1/Desktop/2013/yelp_training_set/yelp_training_set_business.json");
+    ifstream trainingSetBusinessFile(FolderName + "yelp_training_set/yelp_training_set_business.json");
     if (trainingSetBusinessFile.is_open()) {
         while (!trainingSetBusinessFile.eof()) {
             string line;
@@ -160,9 +167,18 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             }
         }
     }
+    else
+    {
+        cout << "can't open file" << endl;
+    }
+    trainingSetBusinessFile.close();
+
+    // TODO:根据用户的review_count和avg_star重新计算平均分
+
+    // TODO:重新计算商家的平均分，需要先测试新的用户平均分能否得到更好的效果
     
     // load test_set_business to testBusinessMap
-    ifstream testSetBusinessFile("/Users/jtang1/Desktop/2013/yelp_test_set/yelp_test_set_business.json");
+    ifstream testSetBusinessFile(FolderName + "yelp_test_set/yelp_test_set_business.json");
     if (testSetBusinessFile.is_open()) {
         while (!testSetBusinessFile.eof()) {
             string line;
@@ -179,9 +195,16 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             testBusinessMap.insert(make_pair(bid, Business(-1, 0, 0, city)));
         }
     }
+    else
+    {
+        cout << "can't open file" << endl;
+    }
+    testSetBusinessFile.close();
     
     // load city avg star
-    ifstream cityAvgFile("/Users/jtang1/Desktop/2013/CityAvgStar.txt");
+    // 城市平均分没有效果，需要使用商家类型平均分试试
+    // TODO:这里需要生成两份CityAvgStar.txt文件
+    ifstream cityAvgFile(FolderName + "CityAvgStar.txt");
     if (cityAvgFile.is_open()) {
         string line;
         getline(cityAvgFile, line);
@@ -194,6 +217,11 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             cityAvgMap.insert(make_pair(city, avgStar));
         }
     }
+    else
+    {
+        cout << "can't open file" << endl;
+    }
+    cityAvgFile.close;
 }
 
 
@@ -548,33 +576,7 @@ int main(int argc, const char * argv[])
 
     
     //analyzeDataSet();
-#ifdef LocalTest
-    ifstream submitionFile = ifstream("/Users/jtang1/Desktop/test2013/test_review.json");
-#else
-    ifstream submitionFile = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
-#endif
-    // 将需要预测的数据读入predictionMap
-    if (submitionFile.is_open())
-    {
-        string line;
-        getline(submitionFile, line);
-        while (!submitionFile.eof())
-        {
-            getline(submitionFile, line);
-#ifdef LocalTest
-            size_t start;
-            start = line.find("\"user_id\"");
-            string uid = line.substr(start+12, 22);
-            string bid = line.substr(line.length() - 24, 22);
-#else
-            string uid = line.substr(0, 22);
-            string bid = line.substr(23, 22);
-#endif
-            predictionUBMap.insert(make_pair(uid, bid));
-            predictionBUMap.insert(make_pair(bid, uid));
-        }
-    }
-    submitionFile.close();
+    loadDataToPredict(predictionUBMap, predictionBUMap);
     
     
     int rowCount, colCount;
