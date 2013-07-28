@@ -579,11 +579,11 @@ int main(int argc, const char * argv[])
 
     
     
-    for (float lrate = 0.0004; lrate < 0.001; lrate += 0.00005) {
-        for (int factor = 15; factor < 31; ++factor) {
+    for (float lrate = 0.00045; lrate < 0.00046; lrate += 0.00005) {
+        for (int factor = 22; factor < 23; ++factor) {
             cout << "lrate: " << lrate << "\tfactor: " << factor << endl;
             BasicPMF pmf(rowCount, colCount, lrate, factor);
-            pmf.compute(sparseUBMatrix, sparseBUMatrix, 80, userMap, businessMap);
+            pmf.compute(sparseUBMatrix, sparseBUMatrix, 100, userMap, businessMap);
             pmf.predict(userMap, businessMap, testBusinessMap, cityAvgMap);
         }
     }

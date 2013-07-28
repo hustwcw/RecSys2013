@@ -24,7 +24,7 @@ using namespace std;
 BiasSVD::BiasSVD(int uCount, int bCount, int f)
 :userCount(uCount), businessCount(bCount), factor(f)
 {
-    srand((unsigned int)clock());
+//    srand((unsigned int)clock());
     matrixP = new float[factor][UserSize];
     matrixQ = new float[factor][BusinessSize];
     for (int i = 0; i < factor; ++i) {
@@ -153,13 +153,8 @@ void BiasSVD::predict(const map<string, User> &userMap, const map<string, Busine
 {
     stringstream predictionFileName;
     
-#ifdef LocalTest
-    ifstream submitionFile = ifstream("/Users/jtang1/Desktop/test2013/test_review.json");
-    predictionFileName << "/Users/jtang1/Desktop/test2013/prediction/prediction_factor" << factor << "_iter" << iterCount << ".csv";
-#else
-    ifstream submitionFile = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
-    predictionFileName << "/Users/jtang1/Desktop/2013/predictionLFM/prediction_factor" << factor << "_iter" << iterCount << ".csv";
-#endif
+    ifstream submitionFile = ifstream(FolderName + "sampleSubmission.csv");
+    predictionFileName << FolderName + "BasicSVD/BasicSVD_lrate" << learnRate << "_factor" << factor << "_iter" << iterCount << ".csv";
     
     ofstream predictionFile = ofstream(predictionFileName.str());
     // 根据result和UserMap、BusinessMap中的评分平均值计算最终的评分

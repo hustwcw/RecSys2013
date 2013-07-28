@@ -24,7 +24,7 @@ using namespace std;
 BasicPMF::BasicPMF(int uCount, int bCount, float lrate, int f)
 :userCount(uCount), businessCount(bCount), learnRate(lrate), factor(f)
 {
-    srand((unsigned int)clock());
+//    srand((unsigned int)clock());
     matrixP = new float[factor][UserSize];
     matrixQ = new float[factor][BusinessSize];
     for (int i = 0; i < factor; ++i) {
@@ -120,7 +120,7 @@ void BasicPMF::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix
 //        }
         
 #ifdef LocalTest
-        if (count >= 30 && (count % 5 == 0)) {
+        if (count >= 40 && (count % 2 == 0)) {
             cout << count << "\t";
             map<string, Business> testBusinessMap;
             map<string, float> cityAvgMap;
@@ -138,7 +138,7 @@ void BasicPMF::predict(const map<string, User> &userMap, const map<string, Busin
     stringstream predictionFileName;
     
     ifstream submitionFile = ifstream(FolderName + "sampleSubmission.csv");
-    predictionFileName << FolderName + "BasicSVD/BasicSVD_factor" << factor << "_iter" << iterCount << ".csv";
+    predictionFileName << FolderName + "BasicSVD/BasicSVD_lrate" << learnRate << "_factor" << factor << "_iter" << iterCount << ".csv";
     
     ofstream predictionFile = ofstream(predictionFileName.str());
     if (submitionFile.is_open())
