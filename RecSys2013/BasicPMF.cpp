@@ -43,9 +43,9 @@ BasicPMF::BasicPMF(int uCount, int bCount, float lrate, int f)
 void BasicPMF::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<float> &transposeStarMatrix, const int maxIterCount, const map<string, User> &userMap, const map<string, Business> &businessMap)
 {    
     int count = 0;
+    float *term1 = new float[factor];
     while(count < maxIterCount)
     {
-        float *term1 = new float[factor];
         // 计算matrixP
         for (int i = 0; i < factor; ++i) {
             term1[i] = 0;
@@ -130,6 +130,7 @@ void BasicPMF::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix
         
         ++count;
     }//while(...)
+    delete [] term1;
     iterCount = count;
 }
 
@@ -180,7 +181,16 @@ void BasicPMF::predict(const map<string, User> &userMap, const map<string, Busin
                 else
                 {
                     // TODO:使用用户平均值还是商家平均值？取review_count高的平均值吗？
-                    prediction = businessIter->second.avgStar;
+                    // 商家平均值优先：1.24759
+                    // 用户平均值优先：1.24759
+                    // review_count优先：1.24759
+                    if (userIter->second.reviewCount > businessIter->second.reviewCount) {
+                        prediction = userIter->second.avgStar;
+                    }
+                    else
+                    {
+                        prediction = businessIter->second.avgStar;
+                    }
                     ++businessAvgCount;
                 }
             }

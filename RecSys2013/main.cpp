@@ -95,7 +95,26 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     // 计算商家打分的平均分
     sequence = 0;
     for (map<string, Business>::iterator iter = businessMap.begin(); iter != businessMap.end(); ++iter) {
-        iter->second.avgStar /= iter->second.reviewCount;
+        if (iter->second.reviewCount < 4) {
+            int K = 3;
+            if (iter->second.reviewCount == 1) {
+                K = 3;
+            }
+            else if (iter->second.reviewCount == 2)
+            {
+                K = 1.5;
+            }
+            else if (iter->second.reviewCount == 3)
+            {
+                K = 0.4;
+            }
+            //            K = userIter->second.reviewCount + 1;
+            iter->second.avgStar = (GlobalAvg*K + iter->second.avgStar*iter->second.reviewCount) / (K + iter->second.reviewCount);
+        }
+        else
+        {
+            iter->second.avgStar /= iter->second.reviewCount;
+        }
         iter->second.sequence = sequence++;
     }
     colCount = sequence;    // 返回review_set中出现的商家树
@@ -156,7 +175,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             if (businessIter != businessMap.end()) {
                 businessIter->second.avgStar = avg_stars;
                 businessIter->second.city = city;
-//                businessIter->second.reviewCount = review_count;
+                businessIter->second.reviewCount = review_count;
             }
             else
             {
@@ -172,15 +191,24 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
 
     // 根据用户的review_count和avg_star重新计算平均分
     int K = 3;
-    for (map<string, User>::iterator userIter = userMap.begin(); userIter != userMap.end(); ++userIter) {
-        if (userIter->second.reviewCount < 3) {
+    for (map<string, User>::iterator iter = userMap.begin(); iter != userMap.end(); ++iter) {
+        if (iter->second.reviewCount < 4) {
+            if (iter->second.reviewCount == 1) {
+                K = 3;
+            }
+            else if (iter->second.reviewCount == 2)
+            {
+                K = 1.5;
+            }
+            else if (iter->second.reviewCount == 3)
+            {
+                K = 0.4;
+            }
 //            K = userIter->second.reviewCount + 1;
-            userIter->second.avgStar = (GlobalAvg*K + userIter->second.avgStar*userIter->second.reviewCount) / (K + userIter->second.reviewCount);
+            iter->second.avgStar = (GlobalAvg*K + iter->second.avgStar*iter->second.reviewCount) / (K + iter->second.reviewCount);
         }
     }
 
-    // TODO:重新计算商家的平均分，需要先测试新的用户平均分能否得到更好的效果
-    
     // load test_set_business to testBusinessMap
     ifstream testSetBusinessFile(FolderName + "yelp_test_set/yelp_test_set_business.json");
     if (testSetBusinessFile.is_open()) {
@@ -579,22 +607,25 @@ int main(int argc, const char * argv[])
 
     
     
-    for (float lrate = 0.00045; lrate < 0.00046; lrate += 0.00005) {
-        for (int factor = 22; factor < 23; ++factor) {
+//    for (float lrate = 0.00045; lrate < 0.00046; lrate += 0.00005) {
+//        for (int factor = 22; factor < 23; ++factor) {
+//            cout << "lrate: " << lrate << "\tfactor: " << factor << endl;
+//            BasicPMF pmf(rowCount, colCount, lrate, factor);
+//            pmf.compute(sparseUBMatrix, sparseBUMatrix, 100, userMap, businessMap);
+//            pmf.predict(userMap, businessMap, testBusinessMap, cityAvgMap);
+//        }
+//    }
+
+
+    for (float lrate = 0.0003; lrate < 0.00081; lrate += 0.00005) {
+        for (int factor = 15; factor < 28; ++factor) {
             cout << "lrate: " << lrate << "\tfactor: " << factor << endl;
-            BasicPMF pmf(rowCount, colCount, lrate, factor);
-            pmf.compute(sparseUBMatrix, sparseBUMatrix, 100, userMap, businessMap);
-            pmf.predict(userMap, businessMap, testBusinessMap, cityAvgMap);
+            BiasSVD biasSVD(rowCount, colCount, lrate, factor);
+            biasSVD.compute(sparseUBMatrix, sparseBUMatrix, 100, userMap, businessMap);
+            biasSVD.predict(userMap, businessMap, testBusinessMap);
         }
     }
 
-
-//    for (int factor = 10; factor < 10; ++factor) {
-//        cout << "\nfactor: " << factor << endl;
-//        BiasSVD biasSVD(rowCount, colCount, factor);
-//        biasSVD.compute(sparseUBMatrix, sparseBUMatrix, 100, userMap, businessMap);
-//    biasSVD.predict(userMap, businessMap);
-//    }
     
     return 0;
 }

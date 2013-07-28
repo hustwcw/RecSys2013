@@ -21,8 +21,7 @@ class Business;
 
 
 class BasicPMF {
-    float lamda = 0.002;// 该参数影响不大
-    float iterThreshold = 0.005;
+    float lamda = 0.005;// 该参数影响不大
     
     float( *matrixP)[UserSize];
     float (*matrixQ)[BusinessSize];

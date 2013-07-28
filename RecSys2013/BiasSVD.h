@@ -20,9 +20,7 @@ class Business;
 
 
 class BiasSVD {
-    float lamda = 0.001;
-    float learnRate = 0.0025;
-    float iterThreshold = 0.005;
+    float lamda = 0.005;
     
     float( *matrixP)[UserSize];
     float (*matrixQ)[BusinessSize];
@@ -30,16 +28,17 @@ class BiasSVD {
     float bbias[BusinessSize];
     int userCount;
     int businessCount;
+    float learnRate;
     int factor;
     int iterCount;
 public:
-//    BiasSVD(){}
-    BiasSVD(int uCount, int bCount, int f);
+    BiasSVD(){}
+    BiasSVD(int uCount, int bCount, float learnRate, int f);
     
     
     void compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<float> &transposeStarMatrix, const int maxIterCount, const std::map<std::string, User> &userMap, const std::map<std::string, Business> &businessMap);
-    void predict(const std::map<std::string, User> &userMap, const std::map<std::string, Business> &businessMap);
-    BiasSVD()
+    void predict(const std::map<std::string, User> &userMap, const std::map<std::string, Business> &businessMap, const std::map<std::string, Business> &testBusinessMap);
+    ~BiasSVD()
     {
         delete [] matrixP;
         delete [] matrixQ;
