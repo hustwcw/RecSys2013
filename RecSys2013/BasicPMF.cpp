@@ -21,8 +21,8 @@
 using namespace std;
 
 
-BasicPMF::BasicPMF(int uCount, int bCount, int f)
-:userCount(uCount), businessCount(bCount), factor(f)
+BasicPMF::BasicPMF(int uCount, int bCount, float lrate, int f)
+:userCount(uCount), businessCount(bCount), learnRate(lrate), factor(f)
 {
     srand((unsigned int)clock());
     matrixP = new float[factor][UserSize];
@@ -41,14 +41,11 @@ BasicPMF::BasicPMF(int uCount, int bCount, int f)
 
 
 void BasicPMF::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<float> &transposeStarMatrix, const int maxIterCount, const map<string, User> &userMap, const map<string, Business> &businessMap)
-{
-    double midRMSE = 10.0f;
-    
+{    
     int count = 0;
-    while((midRMSE > iterThreshold) && (count < maxIterCount))   //只要其中一个条件不满足就停止
+    while(count < maxIterCount)
     {
         float *term1 = new float[factor];
-        float *term2 = new float[factor];
         // 计算matrixP
         for (int i = 0; i < factor; ++i) {
             term1[i] = 0;
@@ -67,13 +64,9 @@ void BasicPMF::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix
             
             // 如果一行计算结束:下一行的起始位置是否等于当前位置加一
             if (starMatrix.rpos[row+1] == (index+1)) {
-                for (int i = 0; i < factor; ++i) {
-                    term2[i] = lamda * matrixP[i][row];
-                }
-                
                 // 梯度下降
                 for (int i = 0; i < factor; ++i) {
-                    matrixP[i][row] -= learnRate * (term1[i] + term2[i]);
+                    matrixP[i][row] -= learnRate * (term1[i] + lamda * matrixP[i][row]);
                 }
                 
                 for (int i = 0; i < factor; ++i) {
@@ -99,13 +92,9 @@ void BasicPMF::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix
             }
             
             if (transposeStarMatrix.rpos[row + 1] == (index+1)) {
-                for (int i = 0; i < factor; ++i) {
-                    term2[i] = lamda * matrixQ[i][row];
-                }
-                
                 // 梯度下降
                 for (int i = 0; i < factor; ++i) {
-                    matrixQ[i][row] -= learnRate * (term1[i]+term2[i]);
+                    matrixQ[i][row] -= learnRate * (term1[i] + lamda * matrixQ[i][row]);
                 }
                 
                 for (int i = 0; i < factor; ++i) {
@@ -115,25 +104,31 @@ void BasicPMF::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix
         }
 
         // 计算RMSE
-        float sum = 0;
-        for (int index = 0; index < starMatrix.tu; ++index) {
-            float temp = 0;
-            int row = starMatrix.data[index].i;
-            int col = starMatrix.data[index].j;
-            for (int i = 0; i < factor; ++i) {
-                temp += (matrixP[i][row] * matrixQ[i][col]);
-            }
-            sum += (temp - starMatrix.data[index].elem) * (temp - starMatrix.data[index].elem);
-        }
-        midRMSE = sqrt(sum/starMatrix.tu);
-        ++count;
-        if (midRMSE < 1.0) {
-            cout << count << ":\t" << midRMSE << endl;
-        }
-        
-//        if (count > 40 && (count % 5 == 0)) {
-//            predict(userMap, businessMap);
+//        float sum = 0;
+//        for (int index = 0; index < starMatrix.tu; ++index) {
+//            float temp = 0;
+//            int row = starMatrix.data[index].i;
+//            int col = starMatrix.data[index].j;
+//            for (int i = 0; i < factor; ++i) {
+//                temp += (matrixP[i][row] * matrixQ[i][col]);
+//            }
+//            sum += (temp - starMatrix.data[index].elem) * (temp - starMatrix.data[index].elem);
 //        }
+//        float midRMSE = sqrt(sum/starMatrix.tu);
+//        if (midRMSE < 1.0) {
+//            cout << count << ":\t" << midRMSE << endl;
+//        }
+        
+#ifdef LocalTest
+        if (count >= 30 && (count % 5 == 0)) {
+            cout << count << "\t";
+            map<string, Business> testBusinessMap;
+            map<string, float> cityAvgMap;
+            predict(userMap, businessMap, testBusinessMap, cityAvgMap);
+        }
+#endif
+        
+        ++count;
     }//while(...)
     iterCount = count;
 }
@@ -142,16 +137,10 @@ void BasicPMF::predict(const map<string, User> &userMap, const map<string, Busin
 {
     stringstream predictionFileName;
     
-#ifdef LocalTest
-    ifstream submitionFile = ifstream("/Users/jtang1/Desktop/test2013/test_review.json");
-    predictionFileName << "/Users/jtang1/Desktop/test2013/prediction/prediction_factor" << factor << "_iter" << iterCount << ".csv";
-#else
-    ifstream submitionFile = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
-    predictionFileName << "/Users/jtang1/Desktop/2013/predictionLFM/prediction_factor" << factor << "_iter" << iterCount << ".csv";
-#endif
+    ifstream submitionFile = ifstream(FolderName + "sampleSubmission.csv");
+    predictionFileName << FolderName + "BasicSVD/BasicSVD_factor" << factor << "_iter" << iterCount << ".csv";
     
     ofstream predictionFile = ofstream(predictionFileName.str());
-    // 根据result和UserMap、BusinessMap中的评分平均值计算最终的评分
     if (submitionFile.is_open())
     {
         string line;
@@ -190,6 +179,7 @@ void BasicPMF::predict(const map<string, User> &userMap, const map<string, Busin
                 }
                 else
                 {
+                    // TODO:使用用户平均值还是商家平均值？取review_count高的平均值吗？
                     prediction = businessIter->second.avgStar;
                     ++businessAvgCount;
                 }
@@ -206,6 +196,7 @@ void BasicPMF::predict(const map<string, User> &userMap, const map<string, Busin
             }
             else
             {
+                // TODO:根据商家所在的类别使用不同的平均值
                 map<string, Business>::const_iterator testBusinessIter = testBusinessMap.find(bid);
                 map<string, float>::const_iterator cityAvgIter = cityAvgMap.find(testBusinessIter->second.city);
                 if (testBusinessIter != testBusinessMap.end() && cityAvgIter != cityAvgMap.end()) {
@@ -228,12 +219,12 @@ void BasicPMF::predict(const map<string, User> &userMap, const map<string, Busin
             }
             predictionFile << ++index << "," << prediction << endl;
         }
-        cout << "LFM Count:" << lfmCount << "\tUser Avg Count:" << userAvgCount << "\tBusiness Avg Count:" << businessAvgCount << "\tGlobal Count:" << globalCount << endl;
+//        cout << "LFM Count:" << lfmCount << "\tUser Avg Count:" << userAvgCount << "\tBusiness Avg Count:" << businessAvgCount << "\tGlobal Count:" << globalCount << endl;
     }
     submitionFile.close();
     predictionFile.close();
     
 #ifdef LocalTest
-    cout << computeRMSE(predictionFileName.str()) << endl;
+    cout << "RMSE:\t" << computeRMSE(predictionFileName.str()) << endl;
 #endif
 }

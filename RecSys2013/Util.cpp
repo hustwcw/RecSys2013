@@ -92,7 +92,7 @@ void analyzeDataSet()
 
 float computeRMSE(const string &predictionFileName)
 {
-    ifstream testReviewFile("/Users/jtang1/Desktop/test2013/test_review.json");
+    ifstream testReviewFile("/Users/jtang1/Desktop/test2013/sampleSubmission.csv");
     ifstream predictionFile(predictionFileName);
     
     float sum = 0;
@@ -118,9 +118,8 @@ float computeRMSE(const string &predictionFileName)
 }
 
 
-void loadDataToPredict(map<string, string> &predictionMap, map<string, string> &transposePredictionMap)
+void loadDataToPredict(multimap<string, string> &predictionUBMap, multimap<string, string> &predictionBUMap)
 {
-    // TODO:这里需要修改文件名
     ifstream submitionFile = ifstream(FolderName + "sampleSubmission.csv");
     // 将需要预测的数据读入predictionMap
     if (submitionFile.is_open())
@@ -130,7 +129,6 @@ void loadDataToPredict(map<string, string> &predictionMap, map<string, string> &
         while (!submitionFile.eof())
         {
             getline(submitionFile, line);
-            // TODO:下面的代码需要修改
 #ifdef LocalTest
             size_t start;
             start = line.find("\"user_id\"");
@@ -144,5 +142,48 @@ void loadDataToPredict(map<string, string> &predictionMap, map<string, string> &
             predictionBUMap.insert(make_pair(bid, uid));
         }
     }
+    else
+    {
+        cout << "can't open submitionFile" << endl;
+    }
     submitionFile.close();
+}
+
+
+
+// 从训练集中分出一部分做测试集
+void splitTrainingSet()
+{
+    ifstream reviewFile("/Users/jtang1/Desktop/test2013/review.json");
+    ofstream trainingReviewFile("/Users/jtang1/Desktop/test2013/training_review.json");
+    ofstream testReviewFile("/Users/jtang1/Desktop/test2013/test_review.json");
+    
+    int testLine = 0;
+    int trainingLine = 0;
+    if (reviewFile.is_open()) {
+        while (!reviewFile.eof()) {
+            string line;
+            getline(reviewFile, line);
+            srand((unsigned int)clock());
+            if ((rand() % 100) < 10) {
+                if (testLine != 0) {
+                    testReviewFile << endl;
+                }
+                ++testLine;
+                testReviewFile << line;
+            }
+            else
+            {
+                if (trainingLine != 0) {
+                    trainingReviewFile << endl;
+                }
+                ++trainingLine;
+                trainingReviewFile << line;
+            }
+        }
+    }
+    
+    reviewFile.close();
+    trainingReviewFile.close();
+    testReviewFile.close();
 }

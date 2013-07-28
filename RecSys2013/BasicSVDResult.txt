@@ -1,0 +1,5 @@
+learnRate   factor  iter    RMSE
+0.00075     21      55      1.18404
+0.0005      
+
+learnRate = 0.00075

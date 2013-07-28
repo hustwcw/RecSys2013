@@ -40,7 +40,7 @@
 		BB90EDE017951EF20023546F /* Util.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Util.cpp; sourceTree = "<group>"; };
 		BB90EDE117951EF20023546F /* Util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Util.h; sourceTree = "<group>"; };
 		BBA4BA41179AB1450003B338 /* result.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = result.txt; sourceTree = "<group>"; };
-		BBA4BA43179FE4390003B338 /* LFMResult.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LFMResult.txt; sourceTree = "<group>"; };
+		BBA4BA43179FE4390003B338 /* BasicSVDResult.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = BasicSVDResult.txt; sourceTree = "<group>"; };
 		BBA4BA44179FEA000003B338 /* User.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = User.cpp; sourceTree = "<group>"; };
 		BBA4BA45179FEA000003B338 /* User.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = User.h; sourceTree = "<group>"; };
 		BBA4BA47179FEA290003B338 /* Business.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Business.cpp; sourceTree = "<group>"; };
@@ -91,7 +91,7 @@
 				BB90EDE017951EF20023546F /* Util.cpp */,
 				BB90EDE117951EF20023546F /* Util.h */,
 				BBA4BA41179AB1450003B338 /* result.txt */,
-				BBA4BA43179FE4390003B338 /* LFMResult.txt */,
+				BBA4BA43179FE4390003B338 /* BasicSVDResult.txt */,
 				BBA4BA44179FEA000003B338 /* User.cpp */,
 				BBA4BA45179FEA000003B338 /* User.h */,
 				BBA4BA47179FEA290003B338 /* Business.cpp */,

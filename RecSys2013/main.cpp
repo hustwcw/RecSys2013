@@ -77,7 +77,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     }
     else
     {
-        cout << "can't open file" << endl;
+        cout << "can't open trainingReviewFile" << endl;
     }
     trainingReviewFile.close();
     
@@ -88,9 +88,6 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     for (map<string, User>::iterator iter = userMap.begin(); iter != userMap.end(); ++iter) {
         iter->second.avgStar /= iter->second.reviewCount;
         iter->second.sequence = sequence++;
-        if (iter->second.avgStar == 0) {
-            cout << iter->second.avgStar << endl;
-        }
     }
     rowCount = sequence;    // 返回review_set中出现的用户数
     
@@ -133,7 +130,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     }
     else
     {
-        cout << "can't open file" << endl;
+        cout << "can't open trainingSetUserFile" << endl;
     }
     trainingSetUserFile.close();
 
@@ -169,11 +166,18 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     }
     else
     {
-        cout << "can't open file" << endl;
+        cout << "can't open trainingSetBusinessFile" << endl;
     }
     trainingSetBusinessFile.close();
 
-    // TODO:根据用户的review_count和avg_star重新计算平均分
+    // 根据用户的review_count和avg_star重新计算平均分
+    int K = 3;
+    for (map<string, User>::iterator userIter = userMap.begin(); userIter != userMap.end(); ++userIter) {
+        if (userIter->second.reviewCount < 3) {
+//            K = userIter->second.reviewCount + 1;
+            userIter->second.avgStar = (GlobalAvg*K + userIter->second.avgStar*userIter->second.reviewCount) / (K + userIter->second.reviewCount);
+        }
+    }
 
     // TODO:重新计算商家的平均分，需要先测试新的用户平均分能否得到更好的效果
     
@@ -197,7 +201,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     }
     else
     {
-        cout << "can't open file" << endl;
+        cout << "can't open testSetBusinessFile" << endl;
     }
     testSetBusinessFile.close();
     
@@ -219,9 +223,9 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     }
     else
     {
-        cout << "can't open file" << endl;
+        cout << "can't open cityAvgFile" << endl;
     }
-    cityAvgFile.close;
+    cityAvgFile.close();
 }
 
 
@@ -526,44 +530,6 @@ void UIPCC(const map<string, User> &userMap, const map<string, Business> &busine
 }
 
 
-// 从训练集中分出一部分做测试集
-void splitTrainingSet()
-{
-    ifstream reviewFile("/Users/jtang1/Desktop/test2013/review.json");
-    ofstream trainingReviewFile("/Users/jtang1/Desktop/test2013/training_review.json");
-    ofstream testReviewFile("/Users/jtang1/Desktop/test2013/test_review.json");
-    
-    int testLine = 0;
-    int trainingLine = 0;
-    if (reviewFile.is_open()) {
-        while (!reviewFile.eof()) {
-            string line;
-            getline(reviewFile, line);
-            srand((unsigned int)clock());
-            if ((rand() % 100) < 10) {
-                if (testLine != 0) {
-                    testReviewFile << endl;
-                }
-                ++testLine;
-                testReviewFile << line;
-            }
-            else
-            {
-                if (trainingLine != 0) {
-                    trainingReviewFile << endl;
-                }
-                ++trainingLine;
-                trainingReviewFile << line;
-            }
-        }
-    }
-    
-    reviewFile.close();
-    trainingReviewFile.close();
-    testReviewFile.close();
-}
-
-
 int main(int argc, const char * argv[])
 {
     map<string, User> userMap;
@@ -577,7 +543,6 @@ int main(int argc, const char * argv[])
     
     //analyzeDataSet();
     loadDataToPredict(predictionUBMap, predictionBUMap);
-    
     
     int rowCount, colCount;
     loadTrainingSet(userMap, businessMap, testBusinessMap, reviewSet, rowCount, colCount, cityAvgMap);
@@ -614,12 +579,15 @@ int main(int argc, const char * argv[])
 
     
     
-    for (int factor = 25; factor < 26; ++factor) {
-        cout << "\nfactor: " << factor << endl;
-        BasicPMF pmf(rowCount, colCount, factor);
-        pmf.compute(sparseUBMatrix, sparseBUMatrix, 60, userMap, businessMap);
-    pmf.predict(userMap, businessMap, testBusinessMap, cityAvgMap);
+    for (float lrate = 0.0004; lrate < 0.001; lrate += 0.00005) {
+        for (int factor = 15; factor < 31; ++factor) {
+            cout << "lrate: " << lrate << "\tfactor: " << factor << endl;
+            BasicPMF pmf(rowCount, colCount, lrate, factor);
+            pmf.compute(sparseUBMatrix, sparseBUMatrix, 80, userMap, businessMap);
+            pmf.predict(userMap, businessMap, testBusinessMap, cityAvgMap);
+        }
     }
+
 
 //    for (int factor = 10; factor < 10; ++factor) {
 //        cout << "\nfactor: " << factor << endl;

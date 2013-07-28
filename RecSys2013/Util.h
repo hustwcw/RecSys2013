@@ -10,13 +10,15 @@
 #define __RecSys2013__Util__
 
 #include <iostream>
+#include <map>
+
 
 #define UserSize        (1024*48)
 #define BusinessSize    (1024*12)
 #define GlobalAvg       (3.766723)
 
 
-//#define LocalTest
+#define LocalTest
 
 
 #define INIT_VARIANCE   0.05          // variance range from the INIT_SEED value
@@ -33,6 +35,9 @@
 // 对数据集的特征进行简单的分析
 void analyzeDataSet();
 float computeRMSE(const std::string &predictionFileName);
-void loadDataToPredict(std::map<std::string, std::string> &predictionMap, std::map<std::string, std::string> &transposePredictionMap);
+void loadDataToPredict(std::multimap<std::string, std::string> &predictionMap, std::multimap<std::string, std::string> &transposePredictionMap);
+
+void splitTrainingSet();
+
 
 #endif /* defined(__RecSys2013__Util__) */
