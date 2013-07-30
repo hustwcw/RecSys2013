@@ -95,6 +95,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     // 计算商家打分的平均分
     sequence = 0;
     for (map<string, Business>::iterator iter = businessMap.begin(); iter != businessMap.end(); ++iter) {
+        // 没有review_count小于3的business，等于3的有2531
         if (iter->second.reviewCount < 4) {
             int K = 3;
             if (iter->second.reviewCount == 1) {
@@ -109,7 +110,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
                 K = 0.4;
             }
             //            K = userIter->second.reviewCount + 1;
-            iter->second.avgStar = (GlobalAvg*K + iter->second.avgStar*iter->second.reviewCount) / (K + iter->second.reviewCount);
+            iter->second.avgStar = (GlobalAvg*K + iter->second.avgStar) / (K + iter->second.reviewCount);
         }
         else
         {
@@ -194,7 +195,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     for (map<string, User>::iterator iter = userMap.begin(); iter != userMap.end(); ++iter) {
         if (iter->second.reviewCount < 4) {
             if (iter->second.reviewCount == 1) {
-                K = 3;
+                K = 5;
             }
             else if (iter->second.reviewCount == 2)
             {
@@ -208,7 +209,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             iter->second.avgStar = (GlobalAvg*K + iter->second.avgStar*iter->second.reviewCount) / (K + iter->second.reviewCount);
         }
     }
-
+    
     // load test_set_business to testBusinessMap
     ifstream testSetBusinessFile(FolderName + "yelp_test_set/yelp_test_set_business.json");
     if (testSetBusinessFile.is_open()) {
@@ -617,11 +618,11 @@ int main(int argc, const char * argv[])
 //    }
 
 
-    for (float lrate = 0.0003; lrate < 0.00081; lrate += 0.00005) {
-        for (int factor = 15; factor < 28; ++factor) {
+    for (float lrate = 0.0004; lrate < 0.00041; lrate += 0.00005) {
+        for (int factor = 20; factor < 21; ++factor) {
             cout << "lrate: " << lrate << "\tfactor: " << factor << endl;
             BiasSVD biasSVD(rowCount, colCount, lrate, factor);
-            biasSVD.compute(sparseUBMatrix, sparseBUMatrix, 100, userMap, businessMap);
+            biasSVD.compute(sparseUBMatrix, sparseBUMatrix, 320, userMap, businessMap);
             biasSVD.predict(userMap, businessMap, testBusinessMap);
         }
     }

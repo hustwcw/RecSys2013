@@ -20,7 +20,7 @@ class Business;
 
 
 class BiasSVD {
-    float lamda = 0.005;
+    float lamda = 0.0005;
     
     float( *matrixP)[UserSize];
     float (*matrixQ)[BusinessSize];

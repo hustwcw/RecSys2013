@@ -18,7 +18,7 @@
 #define GlobalAvg       (3.766723)
 
 
-#define LocalTest
+//#define LocalTest
 
 
 #define INIT_VARIANCE   0.05          // variance range from the INIT_SEED value

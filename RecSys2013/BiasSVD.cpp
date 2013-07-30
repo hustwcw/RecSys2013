@@ -49,6 +49,7 @@ void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<
 {    
     int count = 0;
     float *term1 = new float[factor];
+    float tempLearnRate = learnRate;
     while(count < maxIterCount)   //只要其中一个条件不满足就停止
     {
         float derivativeUbias = 0;
@@ -75,9 +76,9 @@ void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<
             if (starMatrix.rpos[row+1] == (index+1)) {
                 // 梯度下降
                 for (int i = 0; i < factor; ++i) {
-                    matrixP[i][row] -= learnRate * (term1[i] + lamda * matrixP[i][row]);
+                    matrixP[i][row] -= tempLearnRate * (term1[i] + lamda * matrixP[i][row]);
                 }
-                ubias[row] -= (learnRate * derivativeUbias);
+                ubias[row] -= (tempLearnRate * derivativeUbias);
                 
                 // 临时变量清零
                 for (int i = 0; i < factor; ++i) {
@@ -108,9 +109,9 @@ void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<
             if (transposeStarMatrix.rpos[row + 1] == (index+1)) {
                 // 梯度下降
                 for (int i = 0; i < factor; ++i) {
-                    matrixQ[i][row] -= learnRate * (term1[i] + lamda * matrixQ[i][row]);
+                    matrixQ[i][row] -= tempLearnRate * (term1[i] + lamda * matrixQ[i][row]);
                 }
-                bbias[row] -= (learnRate * derivativeBbias);
+                bbias[row] -= (tempLearnRate * derivativeBbias);
                 
                 // 临时变量清零
                 for (int i = 0; i < factor; ++i) {
@@ -132,19 +133,31 @@ void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<
 //            temp += (GlobalAvg + ubias[row] + bbias[col]);
 //            sum += (temp - starMatrix.data[index].elem) * (temp - starMatrix.data[index].elem);
 //        }
-//        float midRMSE = sqrt(sum/starMatrix.tu);
-//        if (midRMSE < 1.0) {
-//            cout << count << ":\t" << midRMSE << endl;
+//        
+//        float sumP = 0;
+//        float sumQ = 0;
+//        for (int i = 0; i < factor; ++i) {
+//            for (int j = 0; j < userCount; ++j) {
+//                sumP += (matrixP[i][j] * matrixP[i][j]);
+//            }
+//            for (int j = 0; j < businessCount; ++j) {
+//                sumQ += (matrixQ[i][j] * matrixQ[i][j]);
+//            }
 //        }
+//        float midRMSE = sqrt(sum/starMatrix.tu);
+////        if (midRMSE < 1.0) {
+//            cout << count << ":\t" << midRMSE << "\t" << (midRMSE + lamda*(sumP + sumQ)) << endl;
+////        }
     
 #ifdef LocalTest
-        if (count >= 40 && (count % 5 == 0)) {
+        if ((count % 10 == 0)) {
             cout << count << "\t";
             map<string, Business> testBusinessMap;
             predict(userMap, businessMap, testBusinessMap);
         }
 #endif
         
+//        tempLearnRate *= 0.999;
         ++count;
     }//while(...)
     delete [] term1;
@@ -196,12 +209,13 @@ void BiasSVD::predict(const map<string, User> &userMap, const map<string, Busine
                         prediction += (matrixP[i][userIter->second.sequence] * matrixQ[i][businessIter->second.sequence]);
                     }
                     prediction += (GlobalAvg + ubias[userIter->second.sequence] + bbias[businessIter->second.sequence]);
+//                    prediction = ((int)(prediction * 2 + 0.5)) / 2.0;
                     ++lfmCount;
                 }
                 else
                 {
-                    prediction = businessIter->second.avgStar;
-                    ++businessAvgCount;
+                    // 用户或者商家在训练集，但是其中一个没有在review中
+                    cout << "不存在这种情况" << endl;
                 }
             }
             else if (userIter != userMap.end())
@@ -220,6 +234,7 @@ void BiasSVD::predict(const map<string, User> &userMap, const map<string, Busine
                 ++globalCount;
             }
             
+//            prediction = ((int)(prediction * 2 + 0.5)) / 2.0;
             
             if (prediction > 5) {
                 prediction = 5;
