@@ -16,3 +16,10 @@ profile
 *.moved-aside
 DerivedData
 .idea/
+
+
+Yelp/bin
+Yelp/training_set_split
+Yelp/*Sets
+*.csv
+*.json
