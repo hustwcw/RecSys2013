@@ -118,7 +118,7 @@ public class PredictNewStars {
 				if(cateMapTrain.cateAvg.containsKey(cates[i])){
 					avg = cateMapTrain.cateAvg.get(cates[i]);
 					MRSE = cateMapTrain.cateMRSE.get(cates[i]);
-					revCntFact = Math.log(cateMapTrain.cateRevCnt.get(cates[i]));
+					revCntFact = Math.log10(cateMapTrain.cateRevCnt.get(cates[i]));
 					if(MRSE < overallMRSE && MRSE != 0){
 						weights += revCntFact/MRSE;
 						totalStars += revCntFact*avg/MRSE;
