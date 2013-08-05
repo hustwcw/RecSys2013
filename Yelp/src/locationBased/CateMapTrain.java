@@ -44,12 +44,32 @@ public class CateMapTrain {
 	public static final String cateBusiCntfileName = "cateBusiCnt.hashmap";
 	public static final String cateMRSEfileName = "cateMRSE.hashmap";
 	
+	public HashMap<String, Double> cateAvgMale;
+	public HashMap<String, Double> cateMRSEMale;
+	public HashMap<String, Integer> cateRevCntMale;
+	public HashMap<String, Integer> cateBusiCntMale;
+	
+	public HashMap<String, Double> cateAvgFemale;
+	public HashMap<String, Double> cateMRSEFemale;
+	public HashMap<String, Integer> cateRevCntFemale;
+	public HashMap<String, Integer> cateBusiCntFemale;
+	
 	public CateMapTrain() {
 		cateMap = new HashMap<String, Set<BusiCateRecTrain> >();
 		cateAvg = new HashMap<String, Double>();
 		cateRevCnt = new HashMap<String, Integer>();
 		cateBusiCnt = new HashMap<String, Integer>();
 		cateMRSE = new HashMap<String, Double>();
+		
+		cateAvgMale = new HashMap<String, Double>();
+		cateRevCntMale = new HashMap<String, Integer>();
+		cateBusiCntMale = new HashMap<String, Integer>();
+		cateMRSEMale = new HashMap<String, Double>();
+		
+		cateAvgFemale = new HashMap<String, Double>();
+		cateRevCntFemale = new HashMap<String, Integer>();
+		cateBusiCntFemale = new HashMap<String, Integer>();
+		cateMRSEFemale = new HashMap<String, Double>();
 		
 		busiRecMap = new HashMap<String, BusiCateRecTrain>();
 	}
