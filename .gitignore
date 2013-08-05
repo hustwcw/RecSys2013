@@ -21,5 +21,4 @@ DerivedData
 Yelp/bin
 Yelp/training_set_split
 Yelp/*Sets
-*.csv
 *.json
