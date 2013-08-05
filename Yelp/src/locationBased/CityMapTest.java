@@ -180,6 +180,12 @@ public class CityMapTest {
 		newMap.refreshLocRangeAndCount();
 		return newMap;
 	}
+	
+	public static void main(String[] args){
+		CityMapTest cmt = new CityMapTest();
+		cmt.getMapFromJason("yelp_test_set_business.json");
+		cmt.storeMap("test_city");
+	}
 }
 
 class BusiCityRecTest implements Serializable{
