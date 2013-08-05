@@ -74,6 +74,31 @@ public class CateMapTrain {
 		busiRecMap = new HashMap<String, BusiCateRecTrain>();
 	}
 	
+	public void stroeVisualSomeCateInfo(String cateName){
+		if(filePathName == null || filePathName.equalsIgnoreCase("")) return;
+		
+		File outFile = new File(filePathName + "/"+cateName+"CateInfo.csv");
+		BufferedWriter fileStream;
+		Iterator<BusiCateRecTrain> it = cateMap.get(cateName).iterator();
+		BusiCateRecTrain rec;
+		try {
+			fileStream = new BufferedWriter( new OutputStreamWriter(new FileOutputStream(outFile)));
+			fileStream.write("BusinessId,Longitude,Latitute,Stars,ReviewCnt,City,State");
+			while(it.hasNext()){
+				rec = it.next();
+				fileStream.write("\n"+rec.business_id+
+						","+rec.longitude+","+rec.latitude+
+						","+rec.stars+","+rec.review_count+
+						","+rec.city+","+rec.state);
+			}
+			fileStream.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	public void storeVisualCateAvg(){
 		if(filePathName == null || filePathName.equalsIgnoreCase("")) return;
 		
@@ -407,6 +432,12 @@ public class CateMapTrain {
 			System.out.println(city+": "+cateMap.get(city).size());
 		}
 		
+	}
+	
+	public static void main(String[] args){
+		CateMapTrain cmt = new CateMapTrain();
+		cmt.loadMap("training_cate");
+		cmt.stroeVisualSomeCateInfo("Tanning");
 	}
 }
 

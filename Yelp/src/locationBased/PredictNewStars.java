@@ -57,7 +57,7 @@ public class PredictNewStars {
 			pair = it.next();
 			String uID = fMatrix.getUserID(pair.x);
 			String bID = fMatrix.getBusinessID(pair.y);
-			if(!matrix.containsUserId(uID) && !matrix.containsBusinessId(bID)){
+			if(!matrix.containsUserId(uID)){
 				fMatrix.putByIndex(pair.x, pair.y, (float)predictStars(uID,bID));
 			}
 		}
@@ -93,8 +93,16 @@ public class PredictNewStars {
 				posX = fMatrix.getUserIndex(eles[0]);
 				posY = fMatrix.getBusinessIndex(eles[1]);
 				star = fMatrix.get(posX, posY);
-				if(star != emptyValue)
-					res[pos-1] = star;
+				if(star != emptyValue){
+					if(matrix.containsBusinessId(eles[1])){
+						double w1,w2;
+						BusiCateRecTrain rec = cateMapTrain.busiRecMap.get(eles[1]);
+						w1 = Math.log10(rec.review_count);
+						w2 = 1.5;
+						res[pos-1] = (float) ((w1*res[pos-1]+w2*star)/(w1+w2));
+					}
+					else res[pos-1] = star;
+				}
 				fileStream.write("\n"+eles[2]+","+res[pos-1]);
 			}
 			reader.close();
