@@ -7,11 +7,15 @@
 //
 
 #include "Util.h"
+#include "User.h"
 
 #include <set>
+#include <map>
+#include <vector>
 #include <string>
 #include <fstream>
 #include <cmath>
+#include <algorithm>
 
 using namespace std;
 
@@ -187,3 +191,113 @@ void splitTrainingSet()
     trainingReviewFile.close();
     testReviewFile.close();
 }
+
+
+void loadGenderFile(map<string, bool> &genderMap)
+{
+    ifstream genderFile("/Users/jtang1/Desktop/2013/mf.txt");
+    if (genderFile.is_open()) {
+        string line;
+        while (!genderFile.eof()) {
+            getline(genderFile, line);
+            size_t pos = line.find("\t");
+            string name = line.substr(0, pos);
+            string gender = line.substr(line.length()-2, 1);
+            if (gender == string("m")) {
+                genderMap.insert(make_pair(name, true));
+            }
+            else
+            {
+                genderMap.insert(make_pair(name, false));
+            }
+        }
+    }
+    else
+    {
+        cout << "can't open genderFile" << endl;
+    }
+}
+
+
+void analyzeGenderDistribution(const map<string, bool> &genderMap, const map<string, User> &userMap)
+{
+    ifstream trainingReviewFile("/Users/jtang1/Desktop/2013/yelp_training_set/yelp_training_set_review.json");
+    vector<int> maleStarVec;
+    vector<int> femaleStarVec;
+    if (trainingReviewFile.is_open()) {
+        string line;
+        while (!trainingReviewFile.eof()) {
+            getline(trainingReviewFile, line);
+            size_t start = line.find("\"user_id\":", 48);
+            string uid = line.substr(start+12, 22);
+            start = line.find("\"stars\"", 124);
+            int stars = atoi(line.substr(start+9, 1).c_str());
+            // 根据uid判断性别
+            string name = userMap.find(uid)->second.name;
+            transform(name.begin(), name.end(), name.begin(), ::toupper);
+            map<string, bool>::const_iterator iter = genderMap.find(name);
+            if (iter != genderMap.end()) {
+                bool gender = iter->second;
+                if (gender == true) {
+                    // 男性
+                    maleStarVec.push_back(stars);
+                }
+                else
+                {
+                    femaleStarVec.push_back(stars);
+                }
+            }
+            else
+            {
+                cout << "can't find the name:\t" << name << endl;
+            }
+            
+        }
+    }
+    else
+    {
+        cout << "can't open trainingReviewFile" << endl;
+    }
+    
+    cout << "Male\tFemale\tGlobal" << endl;
+    // 对男女用户的评分数据进行分析，计算平均值和方差
+    float maleAvg, femaleAvg, globalAvg;
+    float maleRMSE, femaleRMSE, globalRMSE;
+    float maleSum = 0, femaleSum = 0;
+    for (vector<int>::iterator iter = maleStarVec.begin(); iter != maleStarVec.end(); ++iter) {
+        maleSum += *iter;
+    }
+    for (vector<int>::iterator iter = femaleStarVec.begin(); iter != femaleStarVec.end(); ++iter) {
+        femaleSum += *iter;
+    }
+    cout << maleStarVec.size() << "\t" << femaleStarVec.size() << "\t" << maleStarVec.size()+femaleStarVec.size() << endl;
+    maleAvg = maleSum / maleStarVec.size();
+    femaleAvg = femaleSum / femaleStarVec.size();
+    globalAvg = (maleSum + femaleSum) / (maleStarVec.size() + femaleStarVec.size());
+    cout << maleAvg << "\t" << femaleAvg << "\t" << globalAvg << endl;
+    
+    float maleRMSESum = 0, femaleRMSESum = 0, globalRMSESum = 0;
+    for (vector<int>::iterator iter = maleStarVec.begin(); iter != maleStarVec.end(); ++iter) {
+        maleRMSESum += (*iter - maleAvg)*(*iter - maleAvg);
+        globalRMSESum += (*iter - globalAvg) * (*iter - globalAvg);
+    }
+    for (vector<int>::iterator iter = femaleStarVec.begin(); iter != femaleStarVec.end(); ++iter) {
+        femaleRMSESum += (*iter - femaleAvg)*(*iter - femaleAvg);
+        globalRMSESum += (*iter - globalAvg) * (*iter - globalAvg);
+    }
+    maleRMSE = sqrt(maleRMSESum / maleStarVec.size());
+    femaleRMSE = sqrt(femaleRMSESum/ femaleStarVec.size());
+    globalRMSE = sqrt(globalRMSESum / (maleStarVec.size() + femaleStarVec.size()));
+    cout << maleRMSE << "\t" << femaleRMSE << "\t" << globalRMSE << endl;
+}
+
+
+
+
+
+
+
+
+
+
+
