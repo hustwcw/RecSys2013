@@ -17,11 +17,12 @@ struct User {
     float avgStar;
     int reviewCount;
     float confident;
+    std::string name;
     
     User(){}
     
-    User(int theSequence, float theAvgStar, int theReviewCount)
-    :sequence(theSequence), avgStar(theAvgStar), reviewCount(theReviewCount)
+    User(int theSequence, float theAvgStar, int theReviewCount, const std::string &theName)
+    :sequence(theSequence), avgStar(theAvgStar), reviewCount(theReviewCount), name(theName)
     {}
 };
 

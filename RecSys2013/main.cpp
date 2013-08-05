@@ -49,11 +49,11 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             string uid = line.substr(start+12, 22);
             string bid = line.substr(line.length() - 24, 22);
             start = line.find("\"stars\"", 124);
-            float stars = atof(line.substr(start+9, 1).c_str());
+            int stars = atoi(line.substr(start+9, 1).c_str());
             
             map<string, User>::iterator userIter = userMap.find(uid);
             if (userIter == userMap.end()) {
-                userMap.insert(make_pair(uid, User(0, stars, 1)));
+                userMap.insert(make_pair(uid, User(0, stars, 1, "")));
             }
             else
             {
@@ -126,10 +126,16 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
         while (!trainingSetUserFile.eof()) {
             string line;
             getline(trainingSetUserFile, line);
-            size_t start = line.find("\"user_id\":", 48);
+            size_t start, end;
+            start = line.find("\"user_id\":", 48);
             string uid = line.substr(start+12, 22);
+            
+            start = line.find("\"name\"", 80);
+            end = line.find(",", start);
+            string name = line.substr(start + 9, end - start - 10);
+            
             start = line.find("\"average_stars\"", 96);
-            size_t end = line.find(",", start+17);
+            end = line.find(",", start+17);
             float avg_stars = atof(line.substr(start+17, end - start - 17).c_str());
             start = line.find("\"review_count\"", end);
             end = line.find(",", start);
@@ -140,11 +146,12 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
                 if (avg_stars > 0) {
                     userIter->second.avgStar = avg_stars;
                     userIter->second.reviewCount = review_count;
+                    userIter->second.name = name;
                 }
             }
             else
             {
-                userMap.insert(make_pair(uid, User(-1, avg_stars, review_count)));
+                userMap.insert(make_pair(uid, User(-1, avg_stars, review_count, name)));
             }
         }
     }
@@ -565,6 +572,7 @@ int main(int argc, const char * argv[])
     map<string, Business> businessMap;
     map<string, Business> testBusinessMap;
     set<Review> reviewSet;
+    map<string, bool> genderMap;
     map<string, float> cityAvgMap;
     multimap<string, string> predictionUBMap;     // 需要预测的uid和bid
     multimap<string, string> predictionBUMap;     // 需要预测的bid和uid
@@ -572,6 +580,7 @@ int main(int argc, const char * argv[])
     
     //analyzeDataSet();
     loadDataToPredict(predictionUBMap, predictionBUMap);
+    loadGenderFile(genderMap);
     
     int rowCount, colCount;
     loadTrainingSet(userMap, businessMap, testBusinessMap, reviewSet, rowCount, colCount, cityAvgMap);
@@ -617,6 +626,10 @@ int main(int argc, const char * argv[])
 //        }
 //    }
 
+//    analyzeGenderDistribution(genderMap, userMap);
+//    
+//    return 0;
+    
 
     for (float lrate = 0.0004; lrate < 0.00041; lrate += 0.00005) {
         for (int factor = 20; factor < 21; ++factor) {

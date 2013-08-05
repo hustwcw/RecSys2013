@@ -236,7 +236,7 @@ void BiasSVD::predict(const map<string, User> &userMap, const map<string, Busine
             
 //            prediction = ((int)(prediction * 2 + 0.5)) / 2.0;
             
-            if (prediction > 5) {
+            if (prediction > 5 && prediction != 10) {
                 prediction = 5;
             }
             if (prediction < 1) {

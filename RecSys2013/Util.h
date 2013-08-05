@@ -32,12 +32,18 @@
 #endif
 
 
+class User;
+
 // 对数据集的特征进行简单的分析
 void analyzeDataSet();
 float computeRMSE(const std::string &predictionFileName);
 void loadDataToPredict(std::multimap<std::string, std::string> &predictionMap, std::multimap<std::string, std::string> &transposePredictionMap);
 
 void splitTrainingSet();
+
+void loadGenderFile(std::map<std::string, bool> &genderMap);
+
+void analyzeGenderDistribution(const std::map<std::string, bool> &genderMap, const std::map<std::string, User> &userMap);
 
 
 #endif /* defined(__RecSys2013__Util__) */
