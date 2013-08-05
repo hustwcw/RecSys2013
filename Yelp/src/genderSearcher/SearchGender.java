@@ -3,6 +3,7 @@ package genderSearcher;
 import genderSearcher.GenderKind.Gender;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -11,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStreamWriter;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,6 +42,28 @@ public class SearchGender {
 		recSet = new HashSet<UserName>();
 		genderIdMap = new HashMap<String, GenderKind.Gender>();
 		genderNameMap = new HashMap<String, GenderKind.Gender>();
+	}
+	
+	public void storeVisualGenderDict(){
+		if(genderIdMap.isEmpty() || recSet.isEmpty()) return;
+		
+		File outFile = new File(filePathName + "/genderDictionary.csv");
+		BufferedWriter fileStream;
+		Iterator<String> it = genderIdMap.keySet().iterator();
+		String uID;
+		try {
+			fileStream = new BufferedWriter( new OutputStreamWriter(new FileOutputStream(outFile)));
+			fileStream.write("userId,gender");
+			while(it.hasNext()){
+				uID = it.next();
+				fileStream.write("\n"+uID+","+genderIdMap.get(uID));
+			}
+			fileStream.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public void storeMap(){
@@ -270,8 +294,10 @@ public class SearchGender {
 	
 	public static void main(String[] args) {
 		SearchGender sg = new SearchGender();
-		sg.getNameGenderMapFromJason();
-		sg.storeMap("genderMap");
+		sg.loadMap("genderMap");
+//		sg.storeVisualGenderDict();
+//		sg.getNameGenderMapFromJason();
+//		sg.storeMap("genderMap");
 		sg.printInfo();
 		
 		//System.out.println(new SearchGender().searchGender("AZ"));
