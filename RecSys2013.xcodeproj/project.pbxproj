@@ -15,6 +15,7 @@
 		BBA4BA49179FEA290003B338 /* Business.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BBA4BA47179FEA290003B338 /* Business.cpp */; };
 		BBA4BA4C179FEA460003B338 /* Review.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BBA4BA4A179FEA460003B338 /* Review.cpp */; };
 		BBA4BA4F17A102310003B338 /* BiasSVD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BBA4BA4D17A102310003B338 /* BiasSVD.cpp */; };
+		BBBAE38017B0DFA400129480 /* Category.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BBBAE37E17B0DFA400129480 /* Category.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -49,6 +50,9 @@
 		BBA4BA4B179FEA460003B338 /* Review.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Review.h; sourceTree = "<group>"; };
 		BBA4BA4D17A102310003B338 /* BiasSVD.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BiasSVD.cpp; sourceTree = "<group>"; };
 		BBA4BA4E17A102310003B338 /* BiasSVD.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BiasSVD.h; sourceTree = "<group>"; };
+		BBBAE37C17AF7BB000129480 /* Statistics.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Statistics.txt; sourceTree = "<group>"; };
+		BBBAE37E17B0DFA400129480 /* Category.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Category.cpp; sourceTree = "<group>"; };
+		BBBAE37F17B0DFA400129480 /* Category.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Category.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -98,6 +102,9 @@
 				BBA4BA48179FEA290003B338 /* Business.h */,
 				BBA4BA4A179FEA460003B338 /* Review.cpp */,
 				BBA4BA4B179FEA460003B338 /* Review.h */,
+				BBBAE37C17AF7BB000129480 /* Statistics.txt */,
+				BBBAE37E17B0DFA400129480 /* Category.cpp */,
+				BBBAE37F17B0DFA400129480 /* Category.h */,
 			);
 			path = RecSys2013;
 			sourceTree = "<group>";
@@ -160,6 +167,7 @@
 				BBA4BA49179FEA290003B338 /* Business.cpp in Sources */,
 				BBA4BA4C179FEA460003B338 /* Review.cpp in Sources */,
 				BBA4BA4F17A102310003B338 /* BiasSVD.cpp in Sources */,
+				BBBAE38017B0DFA400129480 /* Category.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -190,6 +198,8 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = "";
+				LIBRARY_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
@@ -214,6 +224,8 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = "";
+				LIBRARY_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				SDKROOT = macosx;
 			};
@@ -223,7 +235,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				HEADER_SEARCH_PATHS = /opt/local/include;
+				LIBRARY_SEARCH_PATHS = /opt/local/lib;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "";
 			};
 			name = Debug;
 		};
@@ -231,7 +246,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				HEADER_SEARCH_PATHS = /opt/local/include;
+				LIBRARY_SEARCH_PATHS = /opt/local/lib;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "";
 			};
 			name = Release;
 		};

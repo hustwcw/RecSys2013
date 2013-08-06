@@ -33,6 +33,8 @@
 
 
 class User;
+class Category;
+
 
 // 对数据集的特征进行简单的分析
 void analyzeDataSet();
@@ -42,6 +44,9 @@ void loadDataToPredict(std::multimap<std::string, std::string> &predictionMap, s
 void splitTrainingSet();
 
 void loadGenderFile(std::map<std::string, bool> &genderMap);
+
+void loadCategory(std::map<std::string, Category> &categoryMap);
+
 
 void analyzeGenderDistribution(const std::map<std::string, bool> &genderMap, const std::map<std::string, User> &userMap);
 

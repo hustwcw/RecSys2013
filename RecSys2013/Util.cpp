@@ -7,7 +7,6 @@
 //
 
 #include "Util.h"
-#include "User.h"
 
 #include <set>
 #include <map>
@@ -16,6 +15,15 @@
 #include <fstream>
 #include <cmath>
 #include <algorithm>
+
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/lexical_cast.hpp>
+
+
+#include "User.h"
+#include "Category.h"
+
 
 using namespace std;
 
@@ -219,6 +227,25 @@ void loadGenderFile(map<string, bool> &genderMap)
 }
 
 
+void loadCategory(map<string, Category> &categoryMap)
+{
+    ifstream categoryFile(FolderName + "CateAvgStar.txt");
+    if (categoryFile.is_open()) {
+        string line;
+        getline(categoryFile, line);
+        while (!categoryFile.eof()) {
+            getline(categoryFile, line);
+            vector<string> vStr;
+            boost::split( vStr, line, boost::is_any_of( ":" ), boost::token_compress_on );
+            categoryMap.insert(make_pair(vStr[0], Category(boost::lexical_cast<double>(vStr[1]), boost::lexical_cast<int>(vStr[2]), boost::lexical_cast<int>(vStr[3]), boost::lexical_cast<double>(vStr[4]))));
+        }
+    }
+    else
+    {
+        cout << "Can't open category file" << endl;
+    }
+}
+
 void analyzeGenderDistribution(const map<string, bool> &genderMap, const map<string, User> &userMap)
 {
     ifstream trainingReviewFile("/Users/jtang1/Desktop/2013/yelp_training_set/yelp_training_set_review.json");
@@ -290,8 +317,6 @@ void analyzeGenderDistribution(const map<string, bool> &genderMap, const map<str
     globalRMSE = sqrt(globalRMSESum / (maleStarVec.size() + femaleStarVec.size()));
     cout << maleRMSE << "\t" << femaleRMSE << "\t" << globalRMSE << endl;
 }
-
-
 
 
 

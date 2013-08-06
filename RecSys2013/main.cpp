@@ -19,6 +19,13 @@
 #include <sstream>
 #include <assert.h>
 
+
+#include <boost/scoped_ptr.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
+
 #include "BasicPMF.h"
 #include "BiasSVD.h"
 #include "Util.h"
@@ -26,17 +33,19 @@
 #include "User.h"
 #include "Business.h"
 #include "Review.h"
-
+#include "Category.h"
 
 
 
 using namespace std;
+using namespace boost::property_tree;
+
 
 
 map<string, float> result;  // 评分预测结果，key为uid与bid的连接
 
 
-void loadTrainingSet(map<string, User> &userMap, map<string, Business> &businessMap, map<string, Business> &testBusinessMap, set<Review> &reviewSet, int &rowCount, int &colCount, map<string, float> &cityAvgMap)
+void loadTrainingSet(map<string, User> &userMap, map<string, Business> &businessMap, map<string, Business> &testBusinessMap, set<Review> &reviewSet, map<string, float> &cityAvgMap, const map<string, Category> &categoryMap)
 {
     ifstream trainingReviewFile = ifstream(FolderName + "yelp_training_set/yelp_training_set_review.json");
 
@@ -89,36 +98,15 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
         iter->second.avgStar /= iter->second.reviewCount;
         iter->second.sequence = sequence++;
     }
-    rowCount = sequence;    // 返回review_set中出现的用户数
     
     // 根据商家ID的字符串顺序调整商家在矩阵中的位置
     // 计算商家打分的平均分
     sequence = 0;
     for (map<string, Business>::iterator iter = businessMap.begin(); iter != businessMap.end(); ++iter) {
         // 没有review_count小于3的business，等于3的有2531
-        if (iter->second.reviewCount < 4) {
-            int K = 3;
-            if (iter->second.reviewCount == 1) {
-                K = 3;
-            }
-            else if (iter->second.reviewCount == 2)
-            {
-                K = 1.5;
-            }
-            else if (iter->second.reviewCount == 3)
-            {
-                K = 0.4;
-            }
-            //            K = userIter->second.reviewCount + 1;
-            iter->second.avgStar = (GlobalAvg*K + iter->second.avgStar) / (K + iter->second.reviewCount);
-        }
-        else
-        {
-            iter->second.avgStar /= iter->second.reviewCount;
-        }
+        iter->second.avgStar /= iter->second.reviewCount;
         iter->second.sequence = sequence++;
     }
-    colCount = sequence;    // 返回review_set中出现的商家树
     
     // load training_set_user to userMap
     ifstream trainingSetUserFile(FolderName + "yelp_training_set/yelp_training_set_user.json");
@@ -141,17 +129,13 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             end = line.find(",", start);
             int review_count = atoi(line.substr(start+16, end-start-16).c_str());
             map<string, User>::iterator userIter = userMap.find(uid);
-            if (userIter != userMap.end()) {
-                // id 为：KQnq1p-PlWUo-qPEtWtmMw 的用户在training_set_user里面的平均分是0，从review里计算的平均分是3
-                if (avg_stars > 0) {
-                    userIter->second.avgStar = avg_stars;
-                    userIter->second.reviewCount = review_count;
-                    userIter->second.name = name;
-                }
-            }
-            else
-            {
-                userMap.insert(make_pair(uid, User(-1, avg_stars, review_count, name)));
+            // if (userIter != userMap.end()) 一定为真
+            // id 为：KQnq1p-PlWUo-qPEtWtmMw 的用户在training_set_user里面的平均分是0，review_count是17；
+            // 从review里计算的平均分是3,review_cnt是1
+            if (avg_stars > 0) {
+                userIter->second.avgStar = avg_stars;
+                userIter->second.reviewCount = review_count;
+                userIter->second.name = name;
             }
         }
     }
@@ -160,34 +144,56 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
         cout << "can't open trainingSetUserFile" << endl;
     }
     trainingSetUserFile.close();
-
+    
     // load training_set_business to businessMap
+    int lessBusiCnt = 0;
     ifstream trainingSetBusinessFile(FolderName + "yelp_training_set/yelp_training_set_business.json");
     if (trainingSetBusinessFile.is_open()) {
         while (!trainingSetBusinessFile.eof()) {
+            vector<string> category;
             string line;
             getline(trainingSetBusinessFile, line);
-            string bid = line.substr(17, 22);
-            size_t start = line.find("\"stars\"");
-            size_t end = line.find(",", start+9);
-            float avg_stars = atof(line.substr(start+9, end - start - 9).c_str());
-            start = line.find("\"review_count\"");
-            end = line.find(",", start);
-            int review_count = atoi(line.substr(start+16, end-start-16).c_str());
-            
-            start = line.find("\"city\"");
-            end = line.find(",", start);
-            string city = line.substr(start + 9, end - start - 10);
-            
-            map<string, Business>::iterator businessIter = businessMap.find(bid);
-            if (businessIter != businessMap.end()) {
-                businessIter->second.avgStar = avg_stars;
-                businessIter->second.city = city;
-                businessIter->second.reviewCount = review_count;
+            stringstream jsonStream(line);
+            ptree pt;
+            read_json(jsonStream, pt);
+            ptree ptCategory = pt.get_child("categories");
+            float weight = 0;
+            float totalStar = 0;
+            for (ptree::iterator iter = ptCategory.begin(); iter != ptCategory.end(); ++iter) {
+                string cate(iter->second.data());
+                map<string, Category>::const_iterator cateIter = categoryMap.find(cate);
+                float avgStar = cateIter->second.avgStar;
+                int reviewCnt = cateIter->second.reviewCnt;
+                float RMSE = cateIter->second.RMSE;
+                if (RMSE > 0)
+                {
+                    weight += log10(reviewCnt)/RMSE;
+                    totalStar += (avgStar * log10(reviewCnt) / RMSE);
+                }
+            }
+            if (totalStar <= 0) {
+                totalStar = GlobalAvg;
             }
             else
             {
-                businessMap.insert(make_pair(bid, Business(-1, avg_stars, review_count, city)));
+                totalStar /= weight;
+            }
+            
+            string bid = pt.get<string>("business_id");
+            float avg_stars = pt.get<float>("stars");
+            int review_count = pt.get<int>("review_count");
+            string city = pt.get<string>("city");
+            
+            map<string, Business>::iterator businessIter = businessMap.find(bid);
+            // if (businessIter != businessMap.end()) 一定为真
+            // 如果review文件中的review_count小于10而且business文件中的review_count大于review中的review_count，
+            // 则使用business文件中的review_count和avg_star
+            businessIter->second.city = city;
+            businessIter->second.cateAvgStar = totalStar;
+            if (businessIter->second.reviewCount < 10 && review_count > businessIter->second.reviewCount*1.3) {
+                businessIter->second.avgStar = avg_stars;
+                businessIter->second.reviewCount = review_count;
+                lessBusiCnt++;
             }
         }
     }
@@ -196,6 +202,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
         cout << "can't open trainingSetBusinessFile" << endl;
     }
     trainingSetBusinessFile.close();
+    cout << "less business Count:" << lessBusiCnt << endl;
 
     // 根据用户的review_count和avg_star重新计算平均分
     int K = 3;
@@ -212,7 +219,6 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             {
                 K = 0.4;
             }
-//            K = userIter->second.reviewCount + 1;
             iter->second.avgStar = (GlobalAvg*K + iter->second.avgStar*iter->second.reviewCount) / (K + iter->second.reviewCount);
         }
     }
@@ -577,14 +583,17 @@ int main(int argc, const char * argv[])
     multimap<string, string> predictionUBMap;     // 需要预测的uid和bid
     multimap<string, string> predictionBUMap;     // 需要预测的bid和uid
 
+    map<string, Category> categoryMap;
     
     //analyzeDataSet();
     loadDataToPredict(predictionUBMap, predictionBUMap);
     loadGenderFile(genderMap);
+    loadCategory(categoryMap);
     
-    int rowCount, colCount;
-    loadTrainingSet(userMap, businessMap, testBusinessMap, reviewSet, rowCount, colCount, cityAvgMap);
+    loadTrainingSet(userMap, businessMap, testBusinessMap, reviewSet, cityAvgMap, categoryMap);
     // 生成稀疏矩阵
+    int rowCount = static_cast<int>(userMap.size());
+    int colCount = static_cast<int>(businessMap.size());
     SparseMatrix<float> sparseUBMatrix(static_cast<int>(reviewSet.size()), rowCount, colCount);
     SparseMatrix<float> sparseBUMatrix(static_cast<int>(reviewSet.size()), colCount, rowCount);
     generateMatrix(sparseUBMatrix, userMap, businessMap, reviewSet);

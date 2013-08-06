@@ -230,7 +230,8 @@ void BiasSVD::predict(const map<string, User> &userMap, const map<string, Busine
             }
             else
             {
-                prediction = GlobalAvg;
+                map<string, Business>::const_iterator testBusinessIter = testBusinessMap.find(bid);
+                prediction = testBusinessIter->second.cateAvgStar;
                 ++globalCount;
             }
             

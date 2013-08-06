@@ -15,6 +15,7 @@
 struct Business {
     int sequence;
     float avgStar;
+    float cateAvgStar;  // 通过类别信息计算出来的平均分
     int reviewCount;
     float confident;
     std::string city;
@@ -22,7 +23,7 @@ struct Business {
     Business(){}
     
     Business(int theSequence, float theAvgStar, int theReviewCount, const std::string &theCity)
-    :sequence(theSequence), avgStar(theAvgStar), reviewCount(theReviewCount), city(theCity)
+    :sequence(theSequence), avgStar(theAvgStar), cateAvgStar(0), reviewCount(theReviewCount), city(theCity)
     {}
 };
 
