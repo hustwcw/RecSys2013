@@ -4,11 +4,19 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Scanner;
+import java.util.Set;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 
 import collaborativeFilter.MyFloatMatrix;
 import collaborativeFilter.Pair;
@@ -112,7 +120,31 @@ public class PredictNewStars {
 			e.printStackTrace();
 		}
 	}
-	
+	private double predictStarsTmp(String bID){
+		String[] cates = cateMapTrain.getCates(bID);
+		double weights = 0,totalStars = 0;
+		double avg,MRSE;
+		double revCntFact;
+		if(cates != null){
+			System.out.println("cate not null!");
+			for(int i=0;i<cates.length;i++){
+				if(cateMapTrain.cateAvg.containsKey(cates[i])){
+					avg = cateMapTrain.cateAvg.get(cates[i]);
+					MRSE = cateMapTrain.cateMRSE.get(cates[i]);
+					revCntFact = Math.log10(cateMapTrain.cateRevCnt.get(cates[i]));
+					if(MRSE < overallMRSE && MRSE != 0){
+						weights += revCntFact/MRSE;
+						totalStars += revCntFact*avg/MRSE;
+					}
+				}
+			}
+		}
+		if(totalStars == 0){
+			//System.out.println(cnt++);
+			return overallAvg;
+		}
+		else return totalStars/weights;
+	}
 	private double predictStars(String uID,String bID){
 		String[] cates = testBusiRec.getCates(bID);
 		String city = testBusiRec.getCityName(bID);
@@ -134,26 +166,6 @@ public class PredictNewStars {
 				}
 			}
 		}
-//		
-//		if(cityMapTrain.cityAvg.containsKey(city)){
-//			System.out.println("city not null!");
-//			avg = cityMapTrain.cityAvg.get(city);
-//			MRSE = cityMapTrain.cityMRSE.get(city);
-//			if(MRSE < overallMRSE && MRSE != 0){
-//				weights += 1/MRSE;
-//				totalStars += avg/MRSE;
-//			}
-//		}
-//		
-//		if(street != null && streetMapTrain.streetAvg.containsKey(street)){
-//			System.out.println("street not null!");
-//			avg = streetMapTrain.streetAvg.get(street);
-//			MRSE = streetMapTrain.streetMRSE.get(street);
-//			if(MRSE < overallMRSE && MRSE != 0){
-//				weights += 1/MRSE;
-//				totalStars += avg/MRSE;
-//			}
-//		}
 		if(totalStars == 0){
 			//System.out.println(cnt++);
 			return overallAvg;
@@ -161,11 +173,60 @@ public class PredictNewStars {
 		else return totalStars/weights;
 	}
 	
+	public void storeVisualBusinessInfo(String fileName){
+		Iterator<dataMatrix.Pair> it = matrix.getKeySets().iterator();
+		dataMatrix.Pair p;
+		String bID;
+		HashMap<String, Double> sums = new HashMap<String, Double>();
+		HashMap<String, Double> cnts = new HashMap<String, Double>();
+		HashMap<String, Double> busiRevAvg = new HashMap<String, Double>();
+		while(it.hasNext()){
+			p = it.next();
+			bID = matrix.getBusinessID(p.y);
+			if(! sums.containsKey(bID)){
+				sums.put(bID, (double)matrix.get(p.x, p.y));
+				cnts.put(bID, 1.0);
+			}
+			else{
+				sums.put(bID, sums.get(bID)+(double)matrix.get(p.x, p.y));
+				cnts.put(bID, cnts.get(bID)+1.0);
+			}
+		}
+		
+		Iterator<String> its = sums.keySet().iterator();
+		while(its.hasNext()){
+			bID = its.next();
+			busiRevAvg.put(bID, sums.get(bID)/cnts.get(bID));
+		}
+		
+		File file = new File("weightPredict/" + fileName);
+		BufferedWriter fileStream;
+		Iterator<BusiCateRecTrain> itb = cateMapTrain.busiRecMap.values().iterator();
+		BusiCateRecTrain rec;
+		try {
+			fileStream = new BufferedWriter( new OutputStreamWriter(new FileOutputStream(file)));
+			fileStream.write("BusinessId,AvgFromJason,AvgFromReviews,AvgPredictedByCategories,ReviewCnt");
+			while(itb.hasNext()){
+				rec = itb.next();
+				bID = rec.business_id;
+				fileStream.write("\n"+rec.business_id+
+						","+rec.stars+","+busiRevAvg.get(bID)+
+						","+predictStarsTmp(bID)+","+rec.review_count);
+			}
+			fileStream.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	public static void main(String[] args) {
 		PredictNewStars pns = new PredictNewStars();
 		pns.init();
-		pns.predict();
-		pns.genCSV();
+//		pns.predict();
+//		pns.genCSV();
+		pns.storeVisualBusinessInfo("trainBusiAvgInfos.csv");
 	}
 
 }
