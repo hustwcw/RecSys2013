@@ -74,6 +74,45 @@ public class CateMapTrain {
 		busiRecMap = new HashMap<String, BusiCateRecTrain>();
 	}
 	
+	public void storeVisualTFIDF(String fileName){
+		HashMap<String, Double> cateTFsum = new HashMap<String, Double>();
+		Iterator<BusiCateRecTrain> it = busiRecMap.values().iterator();
+		BusiCateRecTrain rec;
+		while(it.hasNext()){
+			rec = it.next();
+			for(String cate : rec.categories){
+				double TF = 1.0/(rec.categories.length);
+				if(! cateTFsum.containsKey(cate))
+					cateTFsum.put(cate, TF);
+				else
+					cateTFsum.put(cate,cateTFsum.get(cate)+TF);
+			}
+		}
+		
+		File outFile = new File(filePathName + "/" + fileName);
+		BufferedWriter fileStream;
+		Iterator<String> its = cateAvg.keySet().iterator();
+		String currentCate;
+		try {
+			fileStream = new BufferedWriter( new OutputStreamWriter(new FileOutputStream(outFile)));
+			fileStream.write("Category,AvgTF,IDF,AvgTF*IDF,BusinessCnt,MRSE");
+			while(its.hasNext()){
+				currentCate = its.next();
+				int busiCnt = cateBusiCnt.get(currentCate);
+				double avgTF = cateTFsum.get(currentCate)/busiCnt;
+				double IDF = Math.log((double)busiRecMap.size() / busiCnt);
+				fileStream.write("\n"+currentCate+
+						","+avgTF+","+IDF+","+avgTF*IDF+
+						","+busiCnt+","+cateMRSE.get(currentCate));
+			}
+			fileStream.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	public void stroeVisualSomeCateInfo(String cateName){
 		if(filePathName == null || filePathName.equalsIgnoreCase("")) return;
 		
@@ -437,7 +476,8 @@ public class CateMapTrain {
 	public static void main(String[] args){
 		CateMapTrain cmt = new CateMapTrain();
 		cmt.loadMap("training_cate");
-		cmt.stroeVisualSomeCateInfo("Tanning");
+		//cmt.stroeVisualSomeCateInfo("Tanning");
+		cmt.storeVisualTFIDF("CateTFIDFInfo.csv");
 	}
 }
 
