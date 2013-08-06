@@ -43,6 +43,8 @@ public class CateMapTrain {
 	public static final String cateRevCntfileName = "cateRevCnt.hashmap";
 	public static final String cateBusiCntfileName = "cateBusiCnt.hashmap";
 	public static final String cateMRSEfileName = "cateMRSE.hashmap";
+	public static final String cateTFAvgfileName = "cateTFAvg.hashmap";
+	public static final String cateIDFfileName = "cateIDF.hashmap";
 	
 	public HashMap<String, Double> cateAvgMale;
 	public HashMap<String, Double> cateMRSEMale;
@@ -53,6 +55,9 @@ public class CateMapTrain {
 	public HashMap<String, Double> cateMRSEFemale;
 	public HashMap<String, Integer> cateRevCntFemale;
 	public HashMap<String, Integer> cateBusiCntFemale;
+	
+	public HashMap<String, Double> cateTFAvg;
+	public HashMap<String, Double> cateIDF;
 	
 	public CateMapTrain() {
 		cateMap = new HashMap<String, Set<BusiCateRecTrain> >();
@@ -72,6 +77,8 @@ public class CateMapTrain {
 		cateMRSEFemale = new HashMap<String, Double>();
 		
 		busiRecMap = new HashMap<String, BusiCateRecTrain>();
+		cateTFAvg = new HashMap<String, Double>();
+		cateIDF = new HashMap<String, Double>();
 	}
 	
 	public void storeVisualTFIDF(String fileName){
@@ -169,6 +176,7 @@ public class CateMapTrain {
 		cateBusiCnt.clear();
 		cateMRSE.clear();
 		cateRevCnt.clear();
+		cateTFAvg.clear();
 		
 		Iterator<String> itS = cateMap.keySet().iterator();
 		Set<BusiCateRecTrain> set_t;
@@ -252,47 +260,25 @@ public class CateMapTrain {
 			double count = cateRevCnt.get(cate);
 			cateMRSE.put(cate, Math.sqrt(err/count));
 		}
-		
-//		cateAvg.clear();
-//		cateRevCnt.clear();
-//		cateBusiCnt.clear();
-//		
-//		Iterator<String> it1 = cateMap.keySet().iterator();
-//		Iterator<BusiCateRecTrain> it2;
-//		BusiCateRecTrain rec;
-//		double totalStars = 0;
-//		int revCnt = 0;
-//		int busiCnt = 0;
-//		count = 0;
-//		String currentCate;
-//		
-//		while(it1.hasNext()){
-//			currentCate = it1.next();
-//			it2 = cateMap.get(currentCate).iterator();
-//			totalStars = 0;
-//			revCnt = 0;
-//			busiCnt = 0;
-//			while(it2.hasNext()){
-//				rec = it2.next();
-//				totalStars += (rec.stars * rec.review_count);
-//				revCnt += rec.review_count;
-//				busiCnt ++;
-//				count ++;
-//			}
-//			double avg = totalStars/revCnt;
-//			cateAvg.put(currentCate, avg);
-//			cateRevCnt.put(currentCate, revCnt);
-//			cateBusiCnt.put(currentCate, busiCnt);
-//			
-//			double errTotal=0;
-//			it2 = cateMap.get(currentCate).iterator();
-//			while(it2.hasNext()){
-//				rec = it2.next();
-//				errTotal += (rec.stars - avg)*(rec.stars - avg)*rec.review_count;
-//			}
-//			double MRSE = Math.sqrt(errTotal/revCnt);
-//			cateMRSE.put(currentCate, MRSE);
-//		}
+
+		HashMap<String, Double> cateTFsum = new HashMap<String, Double>();
+		Iterator<BusiCateRecTrain> itb = busiRecMap.values().iterator();
+		while(itb.hasNext()){
+			rec = itb.next();
+			for(String cateName : rec.categories){
+				double TF = 1.0/(rec.categories.length);
+				if(! cateTFsum.containsKey(cateName))
+					cateTFsum.put(cateName, TF);
+				else
+					cateTFsum.put(cateName,cateTFsum.get(cateName)+TF);
+			}
+		}
+		itS = cateMap.keySet().iterator();
+		while(itS.hasNext()){
+			cate = itS.next();
+			cateTFAvg.put(cate, cateTFsum.get(cate)/cateBusiCnt.get(cate));
+			cateIDF.put(cate, Math.log((double)busiRecMap.size() / cateBusiCnt.get(cate)));
+		}
 	}
 	
 	public void clear(){
@@ -340,6 +326,16 @@ public class CateMapTrain {
 			fo = new FileOutputStream(filePathName+"/"+busiRecMapfileName);
 			oo = new ObjectOutputStream(fo);
 			oo.writeObject(busiRecMap);
+			oo.close();
+			
+			fo = new FileOutputStream(filePathName+"/"+cateTFAvgfileName);
+			oo = new ObjectOutputStream(fo);
+			oo.writeObject(cateTFAvg);
+			oo.close();
+			
+			fo = new FileOutputStream(filePathName+"/"+cateIDFfileName);
+			oo = new ObjectOutputStream(fo);
+			oo.writeObject(cateIDF);
 			oo.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -391,6 +387,18 @@ public class CateMapTrain {
 			fi = new FileInputStream(filePathName+"/"+busiRecMapfileName);
 			oi = new ObjectInputStream(fi);
 			busiRecMap = (HashMap<String, BusiCateRecTrain>)oi.readObject();
+			fi.close();
+			oi.close();
+			
+			fi = new FileInputStream(filePathName+"/"+cateTFAvgfileName);
+			oi = new ObjectInputStream(fi);
+			cateTFAvg = (HashMap<String, Double>)oi.readObject();
+			fi.close();
+			oi.close();
+			
+			fi = new FileInputStream(filePathName+"/"+cateIDFfileName);
+			oi = new ObjectInputStream(fi);
+			cateIDF = (HashMap<String, Double>)oi.readObject();
 			fi.close();
 			oi.close();
 		} catch (FileNotFoundException e) {
@@ -475,9 +483,12 @@ public class CateMapTrain {
 	
 	public static void main(String[] args){
 		CateMapTrain cmt = new CateMapTrain();
-		cmt.loadMap("training_cate");
-		//cmt.stroeVisualSomeCateInfo("Tanning");
-		cmt.storeVisualTFIDF("CateTFIDFInfo.csv");
+		cmt.getMapFromJason("yelp_training_set_business.json");
+		cmt.storeMap("training_cate");
+//		cmt.loadMap("training_cate");
+//		//cmt.stroeVisualSomeCateInfo("Tanning");
+//		cmt.storeVisualTFIDF("CateTFIDFInfo.csv");
+		
 	}
 }
 

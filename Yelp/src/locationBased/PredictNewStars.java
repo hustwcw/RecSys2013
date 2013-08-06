@@ -10,14 +10,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Scanner;
-import java.util.Set;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
-
 import collaborativeFilter.MyFloatMatrix;
 import collaborativeFilter.Pair;
 import dataMatrix.MyMatrix;
@@ -37,7 +30,7 @@ public class PredictNewStars {
 	
 	public void init(){
 		fMatrix = new MyFloatMatrix();
-		fMatrix.setFilePathName("UIPCC/Overall/MyFloatMatrixEmpty");
+		fMatrix.setFilePathName("Overall/MyFloatMatrixEmpty");
 		fMatrix.getMapFromFile();
 		emptyValue = fMatrix.get(0, 0);
 		System.out.println("empty value: "+emptyValue);
@@ -120,8 +113,8 @@ public class PredictNewStars {
 			e.printStackTrace();
 		}
 	}
-	private double predictStarsTmp(String bID){
-		String[] cates = cateMapTrain.getCates(bID);
+	private double predictStarsTmp1(String bID){
+		String[] cates = testBusiRec.getCates(bID);
 		double weights = 0,totalStars = 0;
 		double avg,MRSE;
 		double revCntFact;
@@ -135,6 +128,85 @@ public class PredictNewStars {
 					if(MRSE < overallMRSE && MRSE != 0){
 						weights += revCntFact/MRSE;
 						totalStars += revCntFact*avg/MRSE;
+					}
+				}
+			}
+		}
+		if(totalStars == 0){
+			//System.out.println(cnt++);
+			return overallAvg;
+		}
+		else return totalStars/weights;
+	}
+	private double predictStarsTmp2(String bID){
+		String[] cates = testBusiRec.getCates(bID);
+		double weights = 0,totalStars = 0;
+		double avg,MRSE;
+		double revCntFact;
+		if(cates != null){
+			System.out.println("cate not null!");
+			for(int i=0;i<cates.length;i++){
+				if(cateMapTrain.cateAvg.containsKey(cates[i])){
+					avg = cateMapTrain.cateAvg.get(cates[i]);
+					MRSE = cateMapTrain.cateMRSE.get(cates[i]);
+					
+					if(MRSE < overallMRSE && MRSE != 0){
+						revCntFact = Math.log10(cateMapTrain.cateRevCnt.get(cates[i])/MRSE);
+						weights += revCntFact;
+						totalStars += revCntFact*avg;
+					}
+				}
+			}
+		}
+		if(totalStars == 0){
+			//System.out.println(cnt++);
+			return overallAvg;
+		}
+		else return totalStars/weights;
+	}
+	private double predictStarsTmp3(String bID){
+		String[] cates = testBusiRec.getCates(bID);
+		double weights = 0,totalStars = 0;
+		double avg,MRSE;
+		double revCntFact;
+		if(cates != null){
+			System.out.println("cate not null!");
+			for(int i=0;i<cates.length;i++){
+				if(cateMapTrain.cateAvg.containsKey(cates[i])){
+					avg = cateMapTrain.cateAvg.get(cates[i]);
+					MRSE = cateMapTrain.cateMRSE.get(cates[i]);
+					
+					if(MRSE < overallMRSE && MRSE != 0){
+						revCntFact = cateMapTrain.cateIDF.get(cates[i]);
+						weights += revCntFact;
+						totalStars += revCntFact*avg;
+					}
+				}
+			}
+		}
+		if(totalStars == 0){
+			//System.out.println(cnt++);
+			return overallAvg;
+		}
+		else return totalStars/weights;
+	}
+	private double predictStarsTmp4(String bID){
+		String[] cates = testBusiRec.getCates(bID);
+		double weights = 0,totalStars = 0;
+		double avg,MRSE;
+		double revCntFact;
+		if(cates != null){
+			System.out.println("cate not null!");
+			for(int i=0;i<cates.length;i++){
+				if(cateMapTrain.cateAvg.containsKey(cates[i])){
+					avg = cateMapTrain.cateAvg.get(cates[i]);
+					MRSE = cateMapTrain.cateMRSE.get(cates[i]);
+					
+					if(MRSE < overallMRSE && MRSE != 0){
+						revCntFact = cateMapTrain.cateTFAvg.get(cates[i])*
+								cateMapTrain.cateIDF.get(cates[i]);
+						weights += revCntFact;
+						totalStars += revCntFact*avg;
 					}
 				}
 			}
@@ -205,13 +277,51 @@ public class PredictNewStars {
 		BusiCateRecTrain rec;
 		try {
 			fileStream = new BufferedWriter( new OutputStreamWriter(new FileOutputStream(file)));
-			fileStream.write("BusinessId,AvgFromJason,AvgFromReviews,AvgPredictedByCategories,ReviewCnt");
+			fileStream.write("BusinessId,AvgFromJason,AvgFromReviews," +
+					"Avg[log(RevCnt)/MRSE],Avg[log(RevCnt/MRSE)],Avg[IDF],Avg[AvgTF*IDF],ReviewCnt");
 			while(itb.hasNext()){
 				rec = itb.next();
 				bID = rec.business_id;
 				fileStream.write("\n"+rec.business_id+
 						","+rec.stars+","+busiRevAvg.get(bID)+
-						","+predictStarsTmp(bID)+","+rec.review_count);
+						","+predictStarsTmp1(bID)+
+						","+predictStarsTmp2(bID)+
+						","+predictStarsTmp3(bID)+
+						","+predictStarsTmp4(bID)+","+rec.review_count);
+			}
+			fileStream.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void storeVisualBusinessInfoTest(String fileName){
+		String bID;		
+		File file = new File("weightPredict/" + fileName);
+		BufferedWriter fileStream;
+		Iterator<String> it = testBusiRec.busiRecMap.keySet().iterator();
+		try {
+			fileStream = new BufferedWriter( new OutputStreamWriter(new FileOutputStream(file)));
+			fileStream.write("BusinessId," +
+					"Avg[log(RevCnt)/MRSE],Avg[log(RevCnt/MRSE)],Avg[IDF],Avg[AvgTF*IDF]," +
+					"newAvgs...");
+			while(it.hasNext()){
+				bID = it.next();
+				double tmp1 = predictStarsTmp1(bID);
+				double tmp2 = predictStarsTmp2(bID);
+				double tmp3 = predictStarsTmp3(bID);
+				double tmp4 = predictStarsTmp4(bID);
+				fileStream.write("\n"+bID+
+						","+tmp1+
+						","+tmp2+
+						","+tmp3+
+						","+tmp4+
+						","+(1.351406*tmp1-1.516091)+
+						","+(1.352317*tmp2-1.517384)+
+						","+(1.301367*tmp3-1.334024)+
+						","+(1.306046*tmp4-1.351651));
 			}
 			fileStream.close();
 		} catch (FileNotFoundException e) {
@@ -226,7 +336,7 @@ public class PredictNewStars {
 		pns.init();
 //		pns.predict();
 //		pns.genCSV();
-		pns.storeVisualBusinessInfo("trainBusiAvgInfos.csv");
+		pns.storeVisualBusinessInfoTest("testBusiAvgInfos.csv");
 	}
 
 }

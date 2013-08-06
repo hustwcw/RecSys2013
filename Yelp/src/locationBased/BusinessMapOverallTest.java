@@ -125,6 +125,12 @@ public class BusinessMapOverallTest {
 		else return null;
 	}
 	
+	public static void main(String[] args){
+		BusinessMapOverallTest bmot = new BusinessMapOverallTest();
+		bmot.getMapFromJason("yelp_test_set_business.json");
+		bmot.storeMap("test_busi_rec");
+	}
+	
 }
 
 class BusiOverallRecTest implements Serializable{

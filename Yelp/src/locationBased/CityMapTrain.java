@@ -336,6 +336,11 @@ public class CityMapTrain {
 		
 	}
 	
+	public static void main(String[] args){
+		CityMapTrain cmt = new CityMapTrain();
+		cmt.getMapFromJason("yelp_training_set_business.json");
+		cmt.storeMap("training_city");
+	}
 
 	class BusiCityRecTrain implements Serializable{
 		private static final long serialVersionUID = -900464532125838257L;

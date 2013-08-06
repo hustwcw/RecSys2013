@@ -78,6 +78,12 @@ public class GenMatrix {
 			e.printStackTrace();
 		}
 	}
+	
+	public static void main(String[] args){
+		MyFloatMatrix fMatrix = new MyFloatMatrix();
+		fMatrix.setFilePathName("Overall/MyFloatMatrixEmpty");
+		getMatrixFromTestJson(fMatrix, "", "yelp_test_set_review.json");
+	}
 }
 
 class ReviewRec{

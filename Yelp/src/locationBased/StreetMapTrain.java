@@ -381,6 +381,12 @@ public class StreetMapTrain {
 		
 	}
 	
+	public static void main(String[] args){
+		StreetMapTrain smt = new StreetMapTrain();
+		smt.getMapFromJason("yelp_training_set_business.json");
+		smt.storeMap("training_street");
+	}
+	
 
 	class BusiStreetRecTrain implements Serializable{
 		private static final long serialVersionUID = -900464532125838257L;
