@@ -16,7 +16,7 @@
 #define UserSize        (1024*48)
 #define BusinessSize    (1024*12)
 #define GlobalAvg       (3.766723)
-
+#define GlobalRMSE      (1.217)
 
 //#define LocalTest
 

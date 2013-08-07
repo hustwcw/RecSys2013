@@ -16,7 +16,7 @@
 #include <cmath>
 #include <sstream>
 #include <fstream>
-
+#include <iomanip>
 
 using namespace std;
 
@@ -232,6 +232,9 @@ void BiasSVD::predict(const map<string, User> &userMap, const map<string, Busine
             {
                 map<string, Business>::const_iterator testBusinessIter = testBusinessMap.find(bid);
                 prediction = testBusinessIter->second.cateAvgStar;
+                if (prediction < 1) {
+                    cout << prediction << endl;
+                }
                 ++globalCount;
             }
             
@@ -245,7 +248,7 @@ void BiasSVD::predict(const map<string, User> &userMap, const map<string, Busine
             }
             predictionFile << ++index << "," << prediction << endl;
         }
-//        cout << "LFM Count:" << lfmCount << "\tUser Avg Count:" << userAvgCount << "\tBusiness Avg Count:" << businessAvgCount << "\tGlobal Count:" << globalCount << endl;
+        cout << "LFM Count:" << lfmCount << "\tUser Avg Count:" << userAvgCount << "\tBusiness Avg Count:" << businessAvgCount << "\tGlobal Count:" << globalCount << endl;
     }
     submitionFile.close();
     predictionFile.close();

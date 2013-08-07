@@ -237,7 +237,7 @@ void loadCategory(map<string, Category> &categoryMap)
             getline(categoryFile, line);
             vector<string> vStr;
             boost::split( vStr, line, boost::is_any_of( ":" ), boost::token_compress_on );
-            categoryMap.insert(make_pair(vStr[0], Category(boost::lexical_cast<double>(vStr[1]), boost::lexical_cast<int>(vStr[2]), boost::lexical_cast<int>(vStr[3]), boost::lexical_cast<double>(vStr[4]))));
+            categoryMap.insert(make_pair(vStr[0], Category(boost::lexical_cast<float>(vStr[1]), boost::lexical_cast<int>(vStr[2]), boost::lexical_cast<int>(vStr[3]), boost::lexical_cast<float>(vStr[4]))));
         }
     }
     else

@@ -7,3 +7,24 @@
 这些商家数和训练集business中的商家相同，平均值和打分次数被修改为business中的值
 
 测试集中的商家数：1205
+
+
+
+Category not exist:
+Szechuan
+Szechuan
+Bubble Tea
+Food Court
+Officiants
+Cannabis Clinics
+Recycling Center
+Home Health Care
+0tQ1zdnOnzLnJDZxZhJRcg
+Vacation Rentals
+Dominican
+Real Estate Law
+Business Law
+Butcher
+Vacation Rental Agents
+Bubble Tea
+Moroccan

@@ -73,7 +73,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             
             map<string, Business>::iterator businessIter = businessMap.find(bid);
             if (businessIter == businessMap.end()) {
-                businessMap.insert(make_pair(bid, Business(0, stars, 1, "")));
+                businessMap.insert(make_pair(bid, Business(0, stars, 0, 1, "")));
             }
             else
             {
@@ -165,13 +165,14 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
                 float avgStar = cateIter->second.avgStar;
                 int reviewCnt = cateIter->second.reviewCnt;
                 float RMSE = cateIter->second.RMSE;
-                if (RMSE > 0)
+                // TODO: 存在RMSE为零但是review_count比较多的情况
+                if (RMSE < GlobalRMSE && RMSE != 0)
                 {
                     weight += log10(reviewCnt)/RMSE;
                     totalStar += (avgStar * log10(reviewCnt) / RMSE);
                 }
             }
-            if (totalStar <= 0) {
+            if (totalStar == 0) {
                 totalStar = GlobalAvg;
             }
             else
@@ -190,7 +191,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             // 则使用business文件中的review_count和avg_star
             businessIter->second.city = city;
             businessIter->second.cateAvgStar = totalStar;
-            if (businessIter->second.reviewCount < 10 && review_count > businessIter->second.reviewCount*1.3) {
+            if (businessIter->second.reviewCount < 10 && review_count > businessIter->second.reviewCount*2) {
                 businessIter->second.avgStar = avg_stars;
                 businessIter->second.reviewCount = review_count;
                 lessBusiCnt++;
@@ -222,23 +223,63 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             iter->second.avgStar = (GlobalAvg*K + iter->second.avgStar*iter->second.reviewCount) / (K + iter->second.reviewCount);
         }
     }
+    for (map<string, Business>::iterator iter = businessMap.begin(); iter != businessMap.end(); ++iter) {
+        if (iter->second.reviewCount == 3) {
+            K = 0.4;
+            iter->second.avgStar = (GlobalAvg*K + iter->second.avgStar*iter->second.reviewCount) / (K + iter->second.reviewCount);
+        }
+    }
     
     // load test_set_business to testBusinessMap
     ifstream testSetBusinessFile(FolderName + "yelp_test_set/yelp_test_set_business.json");
     if (testSetBusinessFile.is_open()) {
         while (!testSetBusinessFile.eof()) {
+            vector<string> category;
             string line;
             getline(testSetBusinessFile, line);
-            size_t start, end;
-            start = line.find("\"business_id\"");
-            end = line.find(",", start);
-            string bid = line.substr(start+16, end - start - 17);
+            stringstream jsonStream(line);
+            ptree pt;
+            read_json(jsonStream, pt);
+            string bid = pt.get<string>("business_id");
+            string city = pt.get<string>("city");
             
-            start = line.find("\"city\"");
-            end = line.find(",", start);
-            string city = line.substr(start + 9, end - start - 10);
+            if (bid == "0tQ1zdnOnzLnJDZxZhJRcg") {
+                cout << bid << endl;
+            }
+            ptree ptCategory = pt.get_child("categories");
+            float weight = 0;
+            float totalStar = 0;
+            for (ptree::iterator iter = ptCategory.begin(); iter != ptCategory.end(); ++iter) {
+                string cate(iter->second.data());
+                map<string, Category>::const_iterator cateIter = categoryMap.find(cate);
+                // 部分类别不存在
+                if (cateIter != categoryMap.end())
+                {
+                    float avgStar = cateIter->second.avgStar;
+                    int reviewCnt = cateIter->second.reviewCnt;
+                    float RMSE = cateIter->second.RMSE;
+                    // TODO: 存在RMSE为零但是review_count比较多的情况
+                    if (RMSE < GlobalRMSE && RMSE != 0)
+                    {
+                        weight += log10(reviewCnt)/RMSE;
+                        totalStar += (avgStar * log10(reviewCnt) / RMSE);
+                    }
+                }
+                else
+                {
+                    cout << cate << endl;
+                }
+            }
+            if (totalStar < 1) {
+                totalStar = GlobalAvg;
+            }
+            else
+            {
+                totalStar /= weight;
+            }
             
-            testBusinessMap.insert(make_pair(bid, Business(-1, 0, 0, city)));
+            
+            testBusinessMap.insert(make_pair(bid, Business(-1, 0, totalStar, 0, city)));
         }
     }
     else
@@ -572,8 +613,34 @@ void UIPCC(const map<string, User> &userMap, const map<string, Business> &busine
 }
 
 
+
+void diffcsv()
+{
+    ifstream f1(FolderName + "BiasSVD/1.csv");
+    ifstream f2(FolderName + "BiasSVD/2.csv");
+    
+    string line1,line2;
+    getline(f1, line1);
+    getline(f2, line2);
+    while (!f1.eof()) {
+        getline(f1, line1);
+        getline(f2, line2);
+        size_t pos1 = line1.find(",");
+        size_t pos2 = line2.find(",");
+        float star1 = boost::lexical_cast<float>(line1.substr(pos1+1, line1.length()-pos1-1));
+        float star2 = boost::lexical_cast<float>(line2.substr(pos2+1, line2.length()-pos2-1));
+        if ((star1 - star2) > 0.001)
+        {
+            cout << line1 << "\t" << line2 << endl;
+        }
+    }
+}
+
 int main(int argc, const char * argv[])
 {
+//    diffcsv();
+//    return 0;
+    
     map<string, User> userMap;
     map<string, Business> businessMap;
     map<string, Business> testBusinessMap;

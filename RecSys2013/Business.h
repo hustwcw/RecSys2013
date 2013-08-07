@@ -22,8 +22,8 @@ struct Business {
     
     Business(){}
     
-    Business(int theSequence, float theAvgStar, int theReviewCount, const std::string &theCity)
-    :sequence(theSequence), avgStar(theAvgStar), cateAvgStar(0), reviewCount(theReviewCount), city(theCity)
+    Business(int theSequence, float theAvgStar, float theCateAvgStar, int theReviewCount, const std::string &theCity)
+    :sequence(theSequence), avgStar(theAvgStar), cateAvgStar(theCateAvgStar), reviewCount(theReviewCount), city(theCity)
     {}
 };
 
