@@ -162,14 +162,22 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             for (ptree::iterator iter = ptCategory.begin(); iter != ptCategory.end(); ++iter) {
                 string cate(iter->second.data());
                 map<string, Category>::const_iterator cateIter = categoryMap.find(cate);
-                float avgStar = cateIter->second.avgStar;
-                int reviewCnt = cateIter->second.reviewCnt;
-                float RMSE = cateIter->second.RMSE;
-                // TODO: 存在RMSE为零但是review_count比较多的情况
-                if (RMSE < GlobalRMSE && RMSE != 0)
+                // 部分类别不存在
+                if (cateIter != categoryMap.end())
                 {
-                    weight += log10(reviewCnt)/RMSE;
-                    totalStar += (avgStar * log10(reviewCnt) / RMSE);
+                    float avgStar = cateIter->second.avgStar;
+                    int reviewCnt = cateIter->second.reviewCnt;
+                    float RMSE = cateIter->second.RMSE;
+                    // TODO: 存在RMSE为零但是review_count比较多的情况
+                    if (RMSE < GlobalRMSE && RMSE != 0)
+                    {
+                        weight += log10(reviewCnt)/RMSE;
+                        totalStar += (avgStar * log10(reviewCnt) / RMSE);
+                    }
+                }
+                else
+                {
+                    cout << cate << endl;
                 }
             }
             if (totalStar == 0) {
@@ -191,7 +199,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             // 则使用business文件中的review_count和avg_star
             businessIter->second.city = city;
             businessIter->second.cateAvgStar = totalStar;
-            if (businessIter->second.reviewCount < 10 && review_count > businessIter->second.reviewCount*2) {
+            if (businessIter->second.reviewCount < 10 && review_count > businessIter->second.reviewCount*1.3) {
                 businessIter->second.avgStar = avg_stars;
                 businessIter->second.reviewCount = review_count;
                 lessBusiCnt++;
@@ -206,7 +214,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     cout << "less business Count:" << lessBusiCnt << endl;
 
     // 根据用户的review_count和avg_star重新计算平均分
-    int K = 3;
+    float K = 3;
     for (map<string, User>::iterator iter = userMap.begin(); iter != userMap.end(); ++iter) {
         if (iter->second.reviewCount < 4) {
             if (iter->second.reviewCount == 1) {
@@ -218,7 +226,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             }
             else if (iter->second.reviewCount == 3)
             {
-                K = 0.4;
+                K = 0.2;
             }
             iter->second.avgStar = (GlobalAvg*K + iter->second.avgStar*iter->second.reviewCount) / (K + iter->second.reviewCount);
         }
@@ -261,7 +269,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
                     // TODO: 存在RMSE为零但是review_count比较多的情况
                     if (RMSE < GlobalRMSE && RMSE != 0)
                     {
-                        weight += log10(reviewCnt)/RMSE;
+                        weight += log10(reviewCnt)/RMSE;
                         totalStar += (avgStar * log10(reviewCnt) / RMSE);
                     }
                 }

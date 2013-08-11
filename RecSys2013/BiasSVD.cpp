@@ -150,11 +150,11 @@ void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<
 ////        }
     
 #ifdef LocalTest
-        if ((count % 10 == 0)) {
-            cout << count << "\t";
-            map<string, Business> testBusinessMap;
-            predict(userMap, businessMap, testBusinessMap);
-        }
+//        if ((count % 10 == 0)) {
+//            cout << count << "\t";
+//            map<string, Business> testBusinessMap;
+//            predict(userMap, businessMap, testBusinessMap);
+//        }
 #endif
         
 //        tempLearnRate *= 0.999;
