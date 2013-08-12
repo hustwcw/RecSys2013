@@ -21,4 +21,8 @@ DerivedData
 Yelp/bin
 Yelp/training_set_split
 Yelp/*Sets
-*.json
+
+
+Data/*/BasicSVD
+Data/*/BiasSVD
+Data/*/PPC
