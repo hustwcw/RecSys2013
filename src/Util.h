@@ -52,5 +52,5 @@ void analyzeGenderDistribution(const std::map<std::string, bool> &genderMap, con
 
 void deleteTextForReview();
 
-
+void newReviewForBusiness();
 #endif /* defined(__RecSys2013__Util__) */

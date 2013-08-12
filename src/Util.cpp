@@ -19,13 +19,16 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/lexical_cast.hpp>
-
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include "User.h"
 #include "Category.h"
 
 
 using namespace std;
+using namespace boost::property_tree;
+
 
 void analyzeDataSet()
 {
@@ -364,3 +367,45 @@ void deleteTextForReview()
 }
 
 
+void newReviewForBusiness()
+{
+    ifstream reviewFile("/Users/jtang1/Documents/Github/RecSys2013/Data/2013/yelp_training_set/yelp_training_set_review.json");
+    ofstream newFile("/Users/jtang1/Documents/Github/RecSys2013/Data/2013/yelp_training_set/NewReviewForBusiness.json");
+    
+    map<string, string> busiMap;
+    string line;
+    while (!reviewFile.eof()) {
+        getline(reviewFile, line);
+        stringstream jsonStream(line);
+        ptree pt;
+        read_json(jsonStream, pt);
+        string newDate =  pt.get_child("date").data();
+        string bid = pt.get_child("business_id").data();
+        
+        map<string, string>::iterator iter = busiMap.find(bid);
+        if (iter != busiMap.end()) {
+            string review = iter->second;
+            stringstream reviewStream(review);
+            ptree reviewPT;
+            read_json(reviewStream, reviewPT);
+            string oldDate = reviewPT.get_child("date").data();
+            if (newDate > oldDate)
+            {
+                busiMap[bid] = line;
+            }
+        }
+        else
+        {
+            busiMap.insert(make_pair(bid, line));
+        }
+    }
+    
+    
+    // 输出busiMap
+    for (map<string, string>::iterator iter = busiMap.begin(); iter != busiMap.end(); ++iter) {
+        newFile << iter->second << endl;
+    }
+    
+    reviewFile.close();
+    newFile.close();
+}

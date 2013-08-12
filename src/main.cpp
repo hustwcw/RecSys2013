@@ -338,6 +338,10 @@ void generateMatrix(SparseMatrix<float> &sparseM, const map<string, User> &userM
 
 int main(int argc, const char * argv[])
 {
+//    newReviewForBusiness();
+//    return 0;
+    
+    
     map<string, User> userMap;
     map<string, Business> businessMap;
     map<string, Business> testBusinessMap;
