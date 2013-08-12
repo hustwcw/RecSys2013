@@ -345,8 +345,8 @@ void diffcsv()
 
 void deleteTextForReview()
 {
-    ifstream oldFile("/Users/jtang1/Documents/Github/RecSys2013/Data/test2013/yelp_test_set/yelp_test_set_review_old.json");
-    ofstream newFile("/Users/jtang1/Documents/Github/RecSys2013/Data/test2013/yelp_test_set/yelp_test_set_review.json");
+    ifstream oldFile("/Users/jtang1/Documents/Github/RecSys2013/Data/test2013/yelp_test_set/");
+    ofstream newFile("/Users/jtang1/Documents/Github/RecSys2013/Data/test2013/yelp_test_set/");
     
     string line;
     while (!oldFile.eof()) {
