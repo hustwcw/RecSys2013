@@ -13,6 +13,10 @@ template <class T>
 struct Triple{
     int i, j;
     T elem;
+	Triple():i(0), j(0), elem(0){}
+	Triple(int row, int col, const T &value)
+		:i(row), j(col), elem(value)
+	{}
 };
 
 template <class T>

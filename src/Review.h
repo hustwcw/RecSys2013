@@ -10,7 +10,7 @@
 #define __RecSys2013__Review__
 
 #include <iostream>
-
+#include <string>
 
 struct Review {
     std::string uid;

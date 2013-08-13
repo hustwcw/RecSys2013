@@ -328,7 +328,7 @@ void generateMatrix(SparseMatrix<float> &sparseM, const map<string, User> &userM
             sparseM.rpos[row] = index;
         }
         int col = businessMap.find(iter->bid)->second.sequence;
-        sparseM.data[index++] = {row, col, iter->star};
+		sparseM.data[index++] = Triple<float>(row, col, iter->star);
         lastRow = row;
     }
     sparseM.rpos[lastRow+1] = index;

@@ -38,12 +38,16 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>D:\Program Files\boost_1_54_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -64,6 +68,31 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\BasicPMF.h" />
+    <ClInclude Include="..\..\src\BiasSVD.h" />
+    <ClInclude Include="..\..\src\Business.h" />
+    <ClInclude Include="..\..\src\Category.h" />
+    <ClInclude Include="..\..\src\CF_PCC.h" />
+    <ClInclude Include="..\..\src\Review.h" />
+    <ClInclude Include="..\..\src\SparseMatrix.h" />
+    <ClInclude Include="..\..\src\User.h" />
+    <ClInclude Include="..\..\src\Util.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\BasicPMF.cpp" />
+    <ClCompile Include="..\..\src\BiasSVD.cpp" />
+    <ClCompile Include="..\..\src\Business.cpp" />
+    <ClCompile Include="..\..\src\Category.cpp" />
+    <ClCompile Include="..\..\src\CF_PCC.cpp" />
+    <ClCompile Include="..\..\src\main.cpp" />
+    <ClCompile Include="..\..\src\Review.cpp" />
+    <ClCompile Include="..\..\src\User.cpp" />
+    <ClCompile Include="..\..\src\Util.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\..\src\BasicSVDResult.txt" />
+    <Text Include="..\..\src\result.txt" />
+    <Text Include="..\..\src\Statistics.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

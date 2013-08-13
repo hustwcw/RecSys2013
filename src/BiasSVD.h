@@ -20,7 +20,7 @@ class Business;
 
 
 class BiasSVD {
-    float lamda = 0.0005;
+    static float lamda;
     
     float( *matrixP)[UserSize];
     float (*matrixQ)[BusinessSize];
@@ -44,5 +44,7 @@ public:
         delete [] matrixQ;
     }
 };
+
+float BiasSVD::lamda = 0.0005;
 
 #endif /* defined(__RecSys2013__BiasSVD__) */
