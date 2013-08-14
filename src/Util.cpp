@@ -30,6 +30,40 @@ using namespace std;
 using namespace boost::property_tree;
 
 
+
+float calculateVectorAvg(const vector<float> &vec)
+{
+    if (vec.size() != 0) {
+        float sum = 0;
+        for (vector<float>::const_iterator iter = vec.begin(); iter != vec.end(); ++iter) {
+            sum += *iter;
+        }
+        return sum / vec.size();
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+float calculateVectorRMSE(const vector<float> &vec, float avg)
+{
+    if (vec.size() != 0)
+    {
+        float sum = 0;
+        for (vector<float>::const_iterator iter = vec.begin(); iter != vec.end(); ++iter) {
+            sum += (*iter - avg) * (*iter - avg);
+        }
+        
+        return sqrt(sum / vec.size());
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+
 void analyzeDataSet()
 {
     set<string> trainingUserSet, testUserSet, testInTrainingUserSet;
@@ -232,7 +266,7 @@ void loadGenderFile(map<string, bool> &genderMap)
 
 void loadCategory(map<string, Category> &categoryMap)
 {
-    ifstream categoryFile(FolderName + "CateAvgStar.txt");
+    ifstream categoryFile(StatisticsPath + "CateAvgStar.txt");
     if (categoryFile.is_open()) {
         string line;
         getline(categoryFile, line);
@@ -248,6 +282,34 @@ void loadCategory(map<string, Category> &categoryMap)
         cout << "Can't open category file" << endl;
     }
 }
+
+
+void loadCityAvg(map<string, float> &cityAvgMap)
+{
+    // load city avg star
+    // 城市平均分没有效果，需要使用商家类型平均分试试
+    // TODO:这里需要生成两份CityAvgStar.txt文件
+    ifstream cityAvgFile(StatisticsPath + "CityAvgStar.txt");
+    if (cityAvgFile.is_open()) {
+        string line;
+        getline(cityAvgFile, line);
+        while (!cityAvgFile.eof()) {
+            getline(cityAvgFile, line);
+            size_t pos = line.find(",");
+            string city = line.substr(0, pos);
+            size_t end = line.find(",", pos+1);
+            float avgStar = atof(line.substr(pos+1, end - pos - 1).c_str());
+            cityAvgMap.insert(make_pair(city, avgStar));
+        }
+    }
+    else
+    {
+        cout << "can't open cityAvgFile" << endl;
+    }
+    cityAvgFile.close();
+}
+
+
 
 void analyzeGenderDistribution(const map<string, bool> &genderMap, const map<string, User> &userMap)
 {

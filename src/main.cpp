@@ -42,8 +42,8 @@ using namespace boost::property_tree;
 
 
 
-void loadTrainingSet(map<string, User> &userMap, map<string, Business> &businessMap, map<string, Business> &testBusinessMap, set<Review> &reviewSet, map<string, float> &cityAvgMap, const map<string, Category> &categoryMap)
-{
+void loadTrainingSet(map<string, User> &userMap, map<string, Business> &businessMap, map<string, Business> &testBusinessMap, set<Review> &reviewSet, const map<string, Category> &categoryMap)
+{    
     ifstream trainingReviewFile = ifstream(FolderName + "yelp_training_set/yelp_training_set_review.json");
 
     // 对于training_set_review根据uid和bid进行排序，便于直接生成稀疏矩阵
@@ -65,7 +65,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             {
                 // 先计算总得打分，最后计算平均分，business类似
                 ++(userIter->second.reviewCount);
-                userIter->second.avgStar += stars;
+                userIter->second.starVec.push_back(stars);
             }
             
             map<string, Business>::iterator businessIter = businessMap.find(bid);
@@ -75,7 +75,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             else
             {
                 ++(businessIter->second.reviewCount);
-                businessIter->second.avgStar += stars;
+                businessIter->second.starVec.push_back(stars);
             }
             
             reviewSet.insert(Review(uid, bid, stars));
@@ -89,19 +89,21 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     
     
     // 根据用户ID的字符串顺序调整用户在矩阵中的位置
-    // 计算用户打分的平均分
+    // 计算用户打分的平均分以及打分的RMSE
     int sequence = 0;
     for (map<string, User>::iterator iter = userMap.begin(); iter != userMap.end(); ++iter) {
-        iter->second.avgStar /= iter->second.reviewCount;
+        iter->second.avgStar = calculateVectorAvg(iter->second.starVec);
+        iter->second.RMSE = calculateVectorRMSE(iter->second.starVec, iter->second.avgStar);
         iter->second.sequence = sequence++;
     }
     
     // 根据商家ID的字符串顺序调整商家在矩阵中的位置
-    // 计算商家打分的平均分
+    // 计算商家打分的平均分以及打分的RMSE
     sequence = 0;
     for (map<string, Business>::iterator iter = businessMap.begin(); iter != businessMap.end(); ++iter) {
         // 没有review_count小于3的business，等于3的有2531
-        iter->second.avgStar /= iter->second.reviewCount;
+        iter->second.avgStar = calculateVectorAvg(iter->second.starVec);
+        iter->second.RMSE = calculateVectorRMSE(iter->second.starVec, iter->second.avgStar);
         iter->second.sequence = sequence++;
     }
     
@@ -196,6 +198,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             // 则使用business文件中的review_count和avg_star
             businessIter->second.city = city;
             businessIter->second.cateAvgStar = totalStar;
+            // 有下面的调整时结果是：1.24577；没有调整的结果是：1.24588
             if (businessIter->second.reviewCount < 10 && review_count > businessIter->second.reviewCount*1.3) {
                 businessIter->second.avgStar = avg_stars;
                 businessIter->second.reviewCount = review_count;
@@ -210,6 +213,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     trainingSetBusinessFile.close();
     cout << "less business Count:" << lessBusiCnt << endl;
 
+    
     // 根据用户的review_count和avg_star重新计算平均分
     float K = 3;
     for (map<string, User>::iterator iter = userMap.begin(); iter != userMap.end(); ++iter) {
@@ -230,7 +234,9 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     }
     for (map<string, Business>::iterator iter = businessMap.begin(); iter != businessMap.end(); ++iter) {
         if (iter->second.reviewCount == 3) {
-            K = 0.4;
+            // K = 0.4      1.24577
+            // K = 0.6      
+            K = 0.6;
             iter->second.avgStar = (GlobalAvg*K + iter->second.avgStar*iter->second.reviewCount) / (K + iter->second.reviewCount);
         }
     }
@@ -275,7 +281,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
                     cout << cate << endl;
                 }
             }
-            if (totalStar < 1) {
+            if (totalStar == 0) {
                 totalStar = GlobalAvg;
             }
             else
@@ -292,28 +298,6 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
         cout << "can't open testSetBusinessFile" << endl;
     }
     testSetBusinessFile.close();
-    
-    // load city avg star
-    // 城市平均分没有效果，需要使用商家类型平均分试试
-    // TODO:这里需要生成两份CityAvgStar.txt文件
-    ifstream cityAvgFile(FolderName + "CityAvgStar.txt");
-    if (cityAvgFile.is_open()) {
-        string line;
-        getline(cityAvgFile, line);
-        while (!cityAvgFile.eof()) {
-            getline(cityAvgFile, line);
-            size_t pos = line.find(",");
-            string city = line.substr(0, pos);
-            size_t end = line.find(",", pos+1);
-            float avgStar = atof(line.substr(pos+1, end - pos - 1).c_str());
-            cityAvgMap.insert(make_pair(city, avgStar));
-        }
-    }
-    else
-    {
-        cout << "can't open cityAvgFile" << endl;
-    }
-    cityAvgFile.close();
 }
 
 
@@ -357,7 +341,10 @@ int main(int argc, const char * argv[])
     loadGenderFile(genderMap);
     loadCategory(categoryMap);
     
-    loadTrainingSet(userMap, businessMap, testBusinessMap, reviewSet, cityAvgMap, categoryMap);
+    loadTrainingSet(userMap, businessMap, testBusinessMap, reviewSet, categoryMap);
+    loadCityAvg(cityAvgMap);
+    
+    
     // 生成稀疏矩阵
     int rowCount = static_cast<int>(userMap.size());
     int colCount = static_cast<int>(businessMap.size());

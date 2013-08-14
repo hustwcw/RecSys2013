@@ -10,6 +10,7 @@
 #define __RecSys2013__Business__
 
 #include <iostream>
+#include <vector>
 
 
 struct Business {
@@ -19,12 +20,17 @@ struct Business {
     int reviewCount;
     float confident;
     std::string city;
+    std::vector<float> starVec;
+    float RMSE;
     
     Business(){}
     
     Business(int theSequence, float theAvgStar, float theCateAvgStar, int theReviewCount, const std::string &theCity)
-    :sequence(theSequence), avgStar(theAvgStar), cateAvgStar(theCateAvgStar), reviewCount(theReviewCount), city(theCity)
-    {}
+    :sequence(theSequence), avgStar(theAvgStar), cateAvgStar(theCateAvgStar), reviewCount(theReviewCount),
+    city(theCity), RMSE(0)
+    {
+        starVec.push_back(theAvgStar);
+    }
 };
 
 

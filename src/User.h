@@ -10,7 +10,7 @@
 #define __RecSys2013__User__
 
 #include <iostream>
-
+#include <vector>
 
 struct User {
     int sequence;
@@ -18,12 +18,17 @@ struct User {
     int reviewCount;
     float confident;
     std::string name;
+    std::vector<float> starVec;
+    float RMSE;
     
     User(){}
     
     User(int theSequence, float theAvgStar, int theReviewCount, const std::string &theName)
-    :sequence(theSequence), avgStar(theAvgStar), reviewCount(theReviewCount), name(theName)
-    {}
+    :sequence(theSequence), avgStar(theAvgStar), reviewCount(theReviewCount), name(theName),
+    RMSE(0)
+    {
+        starVec.push_back(theAvgStar);
+    }
 };
 
 

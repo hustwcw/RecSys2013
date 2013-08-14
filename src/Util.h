@@ -11,6 +11,8 @@
 
 #include <iostream>
 #include <map>
+#include <vector>
+
 
 
 #define UserSize        (1024*48)
@@ -24,16 +26,21 @@
 #define INIT_VARIANCE   0.05          // variance range from the INIT_SEED value
 #define SmallRandom ((2.0*(rand()/(float)(RAND_MAX)) - 1.0)*INIT_VARIANCE) // meaning: rand[-INIT_VARIANCE, +INIT_VARIANCE]
 
-
+#define DataPath    string("/Users/jtang1/Documents/Github/RecSys2013/Data/")
+#define StatisticsPath (DataPath + "Statistics/")
 #ifdef LocalTest
-    #define FolderName string("/Users/jtang1/Desktop/test2013/")
+    #define FolderName (DataPath + "test2013/")
 #else
-    #define FolderName string("/Users/jtang1/Desktop/2013/")
+    #define FolderName (DataPath + "2013/")
 #endif
 
 
 class User;
 class Category;
+
+
+float calculateVectorAvg(const std::vector<float> &vec);
+float calculateVectorRMSE(const std::vector<float> &vec, float avg);
 
 
 // 对数据集的特征进行简单的分析
@@ -46,6 +53,9 @@ void splitTrainingSet();
 void loadGenderFile(std::map<std::string, bool> &genderMap);
 
 void loadCategory(std::map<std::string, Category> &categoryMap);
+
+void loadCityAvg(std::map<std::string, float> &cityAvgMap);
+
 
 
 void analyzeGenderDistribution(const std::map<std::string, bool> &genderMap, const std::map<std::string, User> &userMap);
