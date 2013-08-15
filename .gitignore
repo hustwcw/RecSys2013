@@ -21,8 +21,12 @@ DerivedData
 Yelp/bin
 Yelp/training_set_split
 Yelp/*Sets
-<<<<<<< HEAD
-*.json
+
+
+Data/*/BasicSVD
+Data/*/BiasSVD
+Data/*/PPC
+
 
 
 # For VS2012
@@ -90,10 +94,4 @@ packages/
 
 #Test files
 *.testsettings
-=======
 
-
-Data/*/BasicSVD
-Data/*/BiasSVD
-Data/*/PPC
->>>>>>> 4c904c8b291f66fb718195327785030f22c9219f
