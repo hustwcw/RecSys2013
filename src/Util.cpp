@@ -23,6 +23,7 @@
 #include <boost/property_tree/json_parser.hpp>
 
 #include "User.h"
+#include "Business.h"
 #include "Category.h"
 
 
@@ -284,6 +285,110 @@ void loadCategory(map<string, Category> &categoryMap)
 }
 
 
+void loadTestBusiness(map<string, Business> &testBusinessMap, const map<string, Category> &categoryMap)
+{
+    // load test_set_business to testBusinessMap
+    ifstream testSetBusinessFile(FolderName + "yelp_test_set/yelp_test_set_business.json");
+    if (testSetBusinessFile.is_open()) {
+        while (!testSetBusinessFile.eof()) {
+            vector<string> category;
+            string line;
+            getline(testSetBusinessFile, line);
+            stringstream jsonStream(line);
+            ptree pt;
+            read_json(jsonStream, pt);
+            string bid = pt.get<string>("business_id");
+            string city = pt.get<string>("city");
+            
+            if (bid == "0tQ1zdnOnzLnJDZxZhJRcg") {
+                cout << bid << endl;
+            }
+            ptree ptCategory = pt.get_child("categories");
+            float weight = 0;
+            float totalStar = 0;
+            for (ptree::iterator iter = ptCategory.begin(); iter != ptCategory.end(); ++iter) {
+                string cate(iter->second.data());
+                map<string, Category>::const_iterator cateIter = categoryMap.find(cate);
+                // 部分类别不存在
+                if (cateIter != categoryMap.end())
+                {
+                    float avgStar = cateIter->second.avgStar;
+                    int reviewCnt = cateIter->second.reviewCnt;
+                    float RMSE = cateIter->second.RMSE;
+                    // TODO: 存在RMSE为零但是review_count比较多的情况
+                    if (RMSE < GlobalRMSE && RMSE != 0)
+                    {
+                        weight += log10(reviewCnt)/RMSE;
+                        totalStar += (avgStar * log10(reviewCnt) / RMSE);
+                    }
+                }
+                else
+                {
+                    cout << cate << endl;
+                }
+            }
+            if (totalStar == 0) {
+                totalStar = GlobalAvg;
+            }
+            else
+            {
+                totalStar /= weight;
+            }
+            
+            
+            testBusinessMap.insert(make_pair(bid, Business(-1, 0, totalStar, 0, city)));
+        }
+    }
+    else
+    {
+        cout << "can't open testSetBusinessFile" << endl;
+    }
+    testSetBusinessFile.close();
+}
+
+
+
+
+
+
+
+float calculateUserAvgLatestReviewRMSE(const std::map<std::string, User> &userMap)
+{
+    ifstream latestUserReviewFile(FolderName + "yelp_training_set/LatestReviewForUser.json");
+    
+    map<string, int> userStarMap;
+    if (latestUserReviewFile.is_open()) {
+        string line;
+        while (!latestUserReviewFile.eof()) {
+            getline(latestUserReviewFile, line);
+            size_t user_pos = line.find("\"user_id\"");
+            size_t star_pos = line.find("\"stars\"");
+            string uid = line.substr(user_pos+12, 22);
+            int star = atoi(line.substr(star_pos+9, 1).c_str());
+            userStarMap.insert(make_pair(uid, star));
+        }
+    }
+    else
+    {
+        cout << "can't open latestUserReviewFile" << endl;
+    }
+    
+    // 根据userStarMap和userMap计算RMSE
+    float sum = 0;
+    for (map<string, User>::const_iterator iter = userMap.begin(); iter != userMap.end(); ++iter) {
+        map<string, int>::iterator tmpIter = userStarMap.find(iter->first);
+        if (tmpIter == userStarMap.end()) {
+            cout << iter->first << endl;
+        }
+        sum += (iter->second.avgStar - tmpIter->second) * (iter->second.avgStar - tmpIter->second);
+    }
+    cout << userMap.size() << endl;
+    return sqrt(sum / userMap.size());
+}
+
+
+
+
 void loadCityAvg(map<string, float> &cityAvgMap)
 {
     // load city avg star
@@ -431,8 +536,10 @@ void deleteTextForReview()
 
 void latestReviewForBusiness()
 {
-    ifstream reviewFile("/Users/jtang1/Documents/Github/RecSys2013/Data/2013/yelp_training_set/yelp_training_set_review.json");
-    ofstream newFile("/Users/jtang1/Documents/Github/RecSys2013/Data/2013/yelp_training_set/LatestReviewForBusiness.json");
+    ifstream reviewFile(FolderName + "yelp_training_set/yelp_training_set_review.json");
+    ofstream latestBusinessFile(FolderName + "yelp_training_set/LatestReviewForBusiness.json");
+    ofstream newReviewFile(FolderName + "yelp_training_set/yelp_training_set_review_withoutlatestbusiness.json");
+    
     
     map<string, string> busiMap;
     string line;
@@ -461,22 +568,37 @@ void latestReviewForBusiness()
             busiMap.insert(make_pair(bid, line));
         }
     }
+    reviewFile.close();
+
     
     
-    // 输出busiMap
-    for (map<string, string>::iterator iter = busiMap.begin(); iter != busiMap.end(); ++iter) {
-        newFile << iter->second << endl;
+    ifstream reviewFile2(FolderName + "yelp_training_set/yelp_training_set_review.json");
+    while (!reviewFile2.eof()) {
+        getline(reviewFile2, line);
+        string bid = line.substr(line.length() - 24, 22);
+        
+        auto bIter = busiMap.find(bid);
+        if ((bIter != busiMap.end()) && (bIter->second == line)) {
+            latestBusinessFile << line << endl;
+        }
+        else
+        {
+            newReviewFile << line << endl;
+        }
     }
     
-    reviewFile.close();
-    newFile.close();
+    newReviewFile.close();
+    reviewFile2.close();
+    latestBusinessFile.close();
 }
 
 
 void latestReviewForUser()
 {
-    ifstream reviewFile("/Users/jtang1/Documents/Github/RecSys2013/Data/2013/yelp_training_set/yelp_training_set_review.json");
-    ofstream newFile("/Users/jtang1/Documents/Github/RecSys2013/Data/2013/yelp_training_set/LatestReviewForUser.json");
+    ifstream reviewFile(FolderName + "yelp_training_set/yelp_training_set_review.json");
+    ofstream latestUserFile(FolderName + "yelp_training_set/LatestReviewForUser.json");
+    ofstream newReviewFile(FolderName + "yelp_training_set/yelp_training_set_review_withoutlatestuser.json");
+    
     
     map<string, string> userMap;
     string line;
@@ -488,7 +610,7 @@ void latestReviewForUser()
         string newDate =  pt.get_child("date").data();
         string uid = pt.get_child("user_id").data();
         
-        map<string, string>::iterator iter = userMap.find(uid);
+        auto iter = userMap.find(uid);
         if (iter != userMap.end()) {
             string review = iter->second;
             stringstream reviewStream(review);
@@ -505,15 +627,29 @@ void latestReviewForUser()
             userMap.insert(make_pair(uid, line));
         }
     }
+    reviewFile.close();
     
     
-    // 输出userMap
-    for (map<string, string>::iterator iter = userMap.begin(); iter != userMap.end(); ++iter) {
-        newFile << iter->second << endl;
+    
+    ifstream reviewFile2(FolderName + "yelp_training_set/yelp_training_set_review.json");
+    while (!reviewFile2.eof()) {
+        getline(reviewFile2, line);
+        size_t start = line.find("\"user_id\":", 48);
+        string uid = line.substr(start+12, 22);
+        
+        auto uIter = userMap.find(uid);
+        if ((uIter != userMap.end()) && (uIter->second == line)) {
+            latestUserFile << line << endl;
+        }
+        else
+        {
+            newReviewFile << line << endl;
+        }
     }
     
-    reviewFile.close();
-    newFile.close();
+    newReviewFile.close();
+    reviewFile2.close();
+    latestUserFile.close();
 }
 
 

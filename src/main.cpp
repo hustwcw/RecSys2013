@@ -42,21 +42,24 @@ using namespace boost::property_tree;
 
 
 
-void loadTrainingSet(map<string, User> &userMap, map<string, Business> &businessMap, map<string, Business> &testBusinessMap, set<Review> &reviewSet, const map<string, Category> &categoryMap)
-{    
+void loadTrainingSet(map<string, User> &userMap, map<string, Business> &businessMap, set<Review> &reviewSet, const map<string, Category> &categoryMap)
+{
+    // TESTK
+//    ifstream trainingReviewFile = ifstream(FolderName + "yelp_training_set/yelp_training_set_review_withoutlatestuser.json");
     ifstream trainingReviewFile = ifstream(FolderName + "yelp_training_set/yelp_training_set_review.json");
+//    ifstream trainingReviewFile = ifstream(FolderName + "yelp_training_set/LatestReviewForUser.json");
 
     // 对于training_set_review根据uid和bid进行排序，便于直接生成稀疏矩阵
     if (trainingReviewFile.is_open()) {
         while (!trainingReviewFile.eof()) {
             string line;
             getline(trainingReviewFile, line);
-            size_t start = line.find("\"user_id\":", 48);
+            size_t start = line.find("\"user_id\"");
             string uid = line.substr(start+12, 22);
             string bid = line.substr(line.length() - 24, 22);
             start = line.find("\"stars\"", 124);
             int stars = atoi(line.substr(start+9, 1).c_str());
-            
+                        
             map<string, User>::iterator userIter = userMap.find(uid);
             if (userIter == userMap.end()) {
                 userMap.insert(make_pair(uid, User(0, stars, 1, "")));
@@ -132,6 +135,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             // id 为：KQnq1p-PlWUo-qPEtWtmMw 的用户在training_set_user里面的平均分是0，review_count是17；
             // 从review里计算的平均分是3,review_cnt是1
             if (avg_stars > 0) {
+                // TESTK
                 userIter->second.avgStar = avg_stars;
                 userIter->second.reviewCount = review_count;
                 userIter->second.name = name;
@@ -215,23 +219,32 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
 
     
     // 根据用户的review_count和avg_star重新计算平均分
-    float K = 3;
+    float K = 0;
+    int uc1 = 0, uc2 = 0, uc3 = 0, uc4 = 0;
     for (map<string, User>::iterator iter = userMap.begin(); iter != userMap.end(); ++iter) {
-        if (iter->second.reviewCount < 4) {
-            if (iter->second.reviewCount == 1) {
-                K = 5;
-            }
-            else if (iter->second.reviewCount == 2)
-            {
-                K = 1.5;
-            }
-            else if (iter->second.reviewCount == 3)
-            {
-                K = 0.2;
-            }
-            iter->second.avgStar = (GlobalAvg*K + iter->second.avgStar*iter->second.reviewCount) / (K + iter->second.reviewCount);
+        if (iter->second.reviewCount == 1) {
+            K = 5;
+            ++uc1;
         }
+        else if (iter->second.reviewCount == 2)
+        {
+            K = 2.5*(iter->second.RMSE/20 + 1);
+            ++uc2;
+        }
+        else if (iter->second.reviewCount == 3)
+        {
+            K = 1.5*(iter->second.RMSE/30 + 1);
+            ++uc3;
+        }
+        else// if (iter->second.reviewCount == 4)
+        {
+            K = 0;
+            ++uc4;
+        }
+        iter->second.avgStar = (GlobalAvg*K + iter->second.avgStar*iter->second.reviewCount) / (K + iter->second.reviewCount);
     }
+    cout << uc1 << "\t" << uc2 << "\t" << uc3 << "\t" << uc4 << endl;
+    
     for (map<string, Business>::iterator iter = businessMap.begin(); iter != businessMap.end(); ++iter) {
         if (iter->second.reviewCount == 3) {
             // K = 0.4      1.24580
@@ -241,63 +254,13 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
         }
     }
     
-    // load test_set_business to testBusinessMap
-    ifstream testSetBusinessFile(FolderName + "yelp_test_set/yelp_test_set_business.json");
-    if (testSetBusinessFile.is_open()) {
-        while (!testSetBusinessFile.eof()) {
-            vector<string> category;
-            string line;
-            getline(testSetBusinessFile, line);
-            stringstream jsonStream(line);
-            ptree pt;
-            read_json(jsonStream, pt);
-            string bid = pt.get<string>("business_id");
-            string city = pt.get<string>("city");
-            
-            if (bid == "0tQ1zdnOnzLnJDZxZhJRcg") {
-                cout << bid << endl;
-            }
-            ptree ptCategory = pt.get_child("categories");
-            float weight = 0;
-            float totalStar = 0;
-            for (ptree::iterator iter = ptCategory.begin(); iter != ptCategory.end(); ++iter) {
-                string cate(iter->second.data());
-                map<string, Category>::const_iterator cateIter = categoryMap.find(cate);
-                // 部分类别不存在
-                if (cateIter != categoryMap.end())
-                {
-                    float avgStar = cateIter->second.avgStar;
-                    int reviewCnt = cateIter->second.reviewCnt;
-                    float RMSE = cateIter->second.RMSE;
-                    // TODO: 存在RMSE为零但是review_count比较多的情况
-                    if (RMSE < GlobalRMSE && RMSE != 0)
-                    {
-                        weight += log10(reviewCnt)/RMSE;
-                        totalStar += (avgStar * log10(reviewCnt) / RMSE);
-                    }
-                }
-                else
-                {
-                    cout << cate << endl;
-                }
-            }
-            if (totalStar == 0) {
-                totalStar = GlobalAvg;
-            }
-            else
-            {
-                totalStar /= weight;
-            }
-            
-            
-            testBusinessMap.insert(make_pair(bid, Business(-1, 0, totalStar, 0, city)));
-        }
-    }
-    else
-    {
-        cout << "can't open testSetBusinessFile" << endl;
-    }
-    testSetBusinessFile.close();
+    // TESTK
+    // 计算用户打分的平均值与用户最近一次打分的RMSE
+//    cout << calculateUserAvgLatestReviewRMSE(userMap) << endl;
+    
+    
+    // 计算商家打分的平均值与商家最近一次打分的RMSE
+//    calculateBusinessAvgLatestReviewRMSE(businessMap);
 }
 
 
@@ -323,8 +286,8 @@ void generateMatrix(SparseMatrix<float> &sparseM, const map<string, User> &userM
 int main(int argc, const char * argv[])
 {
 //    latestReviewForBusiness();
-    latestReviewForUser();
-    return 0;
+//    latestReviewForUser();
+//    return 0;
     
     
     map<string, User> userMap;
@@ -342,7 +305,13 @@ int main(int argc, const char * argv[])
     loadGenderFile(genderMap);
     loadCategory(categoryMap);
     
-    loadTrainingSet(userMap, businessMap, testBusinessMap, reviewSet, categoryMap);
+    loadTrainingSet(userMap, businessMap, reviewSet, categoryMap);
+    // TESTK
+//    return 0;
+    
+    
+    
+    loadTestBusiness(testBusinessMap, categoryMap);
     loadCityAvg(cityAvgMap);
     
     

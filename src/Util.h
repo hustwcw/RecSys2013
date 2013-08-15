@@ -36,6 +36,7 @@
 
 
 class User;
+class Business;
 class Category;
 
 
@@ -55,6 +56,17 @@ void loadGenderFile(std::map<std::string, bool> &genderMap);
 void loadCategory(std::map<std::string, Category> &categoryMap);
 
 void loadCityAvg(std::map<std::string, float> &cityAvgMap);
+
+void loadTestBusiness(std::map<std::string, Business> &testBusinessMap, const std::map<std::string, Category> &categoryMap);
+
+
+
+
+
+
+
+float calculateUserAvgLatestReviewRMSE(const std::map<std::string, User> &userMap);
+
 
 
 
