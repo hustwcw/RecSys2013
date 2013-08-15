@@ -22,7 +22,7 @@ using namespace std;
 
 
 BasicPMF::BasicPMF(int uCount, int bCount, float lrate, int f)
-:userCount(uCount), businessCount(bCount), learnRate(lrate), factor(f)
+:lamda(0.005), userCount(uCount), businessCount(bCount), learnRate(lrate), factor(f)
 {
 //    srand((unsigned int)clock());
     matrixP = new float[factor][UserSize];

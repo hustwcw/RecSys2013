@@ -429,10 +429,10 @@ void deleteTextForReview()
 }
 
 
-void newReviewForBusiness()
+void latestReviewForBusiness()
 {
     ifstream reviewFile("/Users/jtang1/Documents/Github/RecSys2013/Data/2013/yelp_training_set/yelp_training_set_review.json");
-    ofstream newFile("/Users/jtang1/Documents/Github/RecSys2013/Data/2013/yelp_training_set/NewReviewForBusiness.json");
+    ofstream newFile("/Users/jtang1/Documents/Github/RecSys2013/Data/2013/yelp_training_set/LatestReviewForBusiness.json");
     
     map<string, string> busiMap;
     string line;
@@ -471,3 +471,52 @@ void newReviewForBusiness()
     reviewFile.close();
     newFile.close();
 }
+
+
+void latestReviewForUser()
+{
+    ifstream reviewFile("/Users/jtang1/Documents/Github/RecSys2013/Data/2013/yelp_training_set/yelp_training_set_review.json");
+    ofstream newFile("/Users/jtang1/Documents/Github/RecSys2013/Data/2013/yelp_training_set/LatestReviewForUser.json");
+    
+    map<string, string> userMap;
+    string line;
+    while (!reviewFile.eof()) {
+        getline(reviewFile, line);
+        stringstream jsonStream(line);
+        ptree pt;
+        read_json(jsonStream, pt);
+        string newDate =  pt.get_child("date").data();
+        string uid = pt.get_child("user_id").data();
+        
+        map<string, string>::iterator iter = userMap.find(uid);
+        if (iter != userMap.end()) {
+            string review = iter->second;
+            stringstream reviewStream(review);
+            ptree reviewPT;
+            read_json(reviewStream, reviewPT);
+            string oldDate = reviewPT.get_child("date").data();
+            if (newDate > oldDate)
+            {
+                userMap[uid] = line;
+            }
+        }
+        else
+        {
+            userMap.insert(make_pair(uid, line));
+        }
+    }
+    
+    
+    // 输出userMap
+    for (map<string, string>::iterator iter = userMap.begin(); iter != userMap.end(); ++iter) {
+        newFile << iter->second << endl;
+    }
+    
+    reviewFile.close();
+    newFile.close();
+}
+
+
+
+
+

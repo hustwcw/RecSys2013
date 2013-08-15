@@ -234,8 +234,8 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     }
     for (map<string, Business>::iterator iter = businessMap.begin(); iter != businessMap.end(); ++iter) {
         if (iter->second.reviewCount == 3) {
-            // K = 0.4      1.24577
-            // K = 0.6      
+            // K = 0.4      1.24580
+            // K = 0.6      1.24466
             K = 0.6;
             iter->second.avgStar = (GlobalAvg*K + iter->second.avgStar*iter->second.reviewCount) / (K + iter->second.reviewCount);
         }
@@ -322,8 +322,9 @@ void generateMatrix(SparseMatrix<float> &sparseM, const map<string, User> &userM
 
 int main(int argc, const char * argv[])
 {
-//    newReviewForBusiness();
-//    return 0;
+//    latestReviewForBusiness();
+    latestReviewForUser();
+    return 0;
     
     
     map<string, User> userMap;

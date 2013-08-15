@@ -21,7 +21,7 @@ class Business;
 
 
 class BasicPMF {
-    static float lamda;// 该参数影响不大
+    float lamda;// 该参数影响不大
     
     float( *matrixP)[UserSize];
     float (*matrixQ)[BusinessSize];
@@ -31,7 +31,6 @@ class BasicPMF {
     int factor;
     int iterCount;
 public:
-    BasicPMF(){}
     BasicPMF(int uCount, int bCount, float lrate, int f);
     
     
@@ -44,7 +43,6 @@ public:
     }
 };
 
-float BasicPMF::lamda = 0.005;
 
 
 #endif /* defined(__RecSys2013__BasicPMF__) */
