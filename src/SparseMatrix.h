@@ -48,7 +48,7 @@ public:
             }
             else
             {
-                end = mid - 1;
+                end = mid;
             }
             mid = (start + end)/2;
         }
