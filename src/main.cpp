@@ -26,6 +26,7 @@
 #include <boost/property_tree/json_parser.hpp>
 
 
+#include "CF_PCC.h"
 #include "BasicPMF.h"
 #include "BiasSVD.h"
 #include "Util.h"
@@ -41,13 +42,10 @@ using namespace std;
 using namespace boost::property_tree;
 
 
-
+// 加载训练集数据，在加载评分数据的过程中加载用户和商家数据
 void loadTrainingSet(map<string, User> &userMap, map<string, Business> &businessMap, set<Review> &reviewSet, const map<string, Category> &categoryMap)
 {
-    // TESTK
-//    ifstream trainingReviewFile = ifstream(FolderName + "yelp_training_set/yelp_training_set_review_withoutlatestuser.json");
     ifstream trainingReviewFile = ifstream(FolderName + "yelp_training_set/yelp_training_set_review.json");
-//    ifstream trainingReviewFile = ifstream(FolderName + "yelp_training_set/LatestReviewForUser.json");
 
     // 对于training_set_review根据uid和bid进行排序，便于直接生成稀疏矩阵
     if (trainingReviewFile.is_open()) {
@@ -59,7 +57,8 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             string bid = line.substr(line.length() - 24, 22);
             start = line.find("\"stars\"", 124);
             int stars = atoi(line.substr(start+9, 1).c_str());
-                        
+            // 判断用户id是否已经出现在userMap中，如果没有则将新出现的用户数据插入到userMap中
+            // 否则，修改userMap中对应的用户数据（reviewCount和平均分）
             map<string, User>::iterator userIter = userMap.find(uid);
             if (userIter == userMap.end()) {
                 userMap.insert(make_pair(uid, User(0, stars, 1, "")));
@@ -70,7 +69,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
                 ++(userIter->second.reviewCount);
                 userIter->second.starVec.push_back(stars);
             }
-            
+            // businessMap的更新和userMap类似
             map<string, Business>::iterator businessIter = businessMap.find(bid);
             if (businessIter == businessMap.end()) {
                 businessMap.insert(make_pair(bid, Business(0, stars, 0, 1, "")));
@@ -111,6 +110,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
     }
     
     // load training_set_user to userMap
+    // 用户数据文件中的数据修改上一步得到的用户数据，评分数和平均分以用户文件中的数据为准
     ifstream trainingSetUserFile(FolderName + "yelp_training_set/yelp_training_set_user.json");
     if (trainingSetUserFile.is_open()) {
         while (!trainingSetUserFile.eof()) {
@@ -180,7 +180,8 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
                 }
                 else
                 {
-                    cout << cate << endl;
+                    // 打印出不存在的类别信息
+                    // cout << cate << endl;
                 }
             }
             if (totalStar == 0) {
@@ -253,14 +254,6 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             iter->second.avgStar = (GlobalAvg*K + iter->second.avgStar*iter->second.reviewCount) / (K + iter->second.reviewCount);
         }
     }
-    
-    // TESTK
-    // 计算用户打分的平均值与用户最近一次打分的RMSE
-//    cout << calculateUserAvgLatestReviewRMSE(userMap) << endl;
-    
-    
-    // 计算商家打分的平均值与商家最近一次打分的RMSE
-//    calculateBusinessAvgLatestReviewRMSE(businessMap);
 }
 
 
@@ -285,11 +278,6 @@ void generateMatrix(SparseMatrix<float> &sparseM, const map<string, User> &userM
 
 int main(int argc, const char * argv[])
 {
-//    latestReviewForBusiness();
-//    latestReviewForUser();
-//    return 0;
-    
-    
     map<string, User> userMap;
     map<string, Business> businessMap;
     map<string, Business> testBusinessMap;
@@ -299,18 +287,12 @@ int main(int argc, const char * argv[])
     multimap<string, string> predictionUBMap;     // 需要预测的uid和bid
     multimap<string, string> predictionBUMap;     // 需要预测的bid和uid
 
-    map<string, Category> categoryMap;
+    map<string, Category> categoryMap; // 商家类别信息
     
     loadDataToPredict(predictionUBMap, predictionBUMap);
     loadGenderFile(genderMap);
     loadCategory(categoryMap);
-    
     loadTrainingSet(userMap, businessMap, reviewSet, categoryMap);
-    // TESTK
-//    return 0;
-    
-    
-    
     loadTestBusiness(testBusinessMap, categoryMap);
     loadCityAvg(cityAvgMap);
     
@@ -323,6 +305,10 @@ int main(int argc, const char * argv[])
     generateMatrix(sparseUBMatrix, userMap, businessMap, reviewSet);
     sparseUBMatrix.transposeMatrix(sparseBUMatrix);
     
+    
+    // 测试协同过滤算法
+//    TestCFPCC(sparseUBMatrix, sparseBUMatrix, userMap, businessMap, predictionUBMap, predictionBUMap);
+//    return 0;
     
     
 //    for (float lrate = 0.00045; lrate < 0.00046; lrate += 0.00005) {
@@ -339,11 +325,11 @@ int main(int argc, const char * argv[])
 //    return 0;
     
 
-    for (float lrate = 0.0004; lrate < 0.00041; lrate += 0.00005) {
-        for (int factor = 20; factor < 21; ++factor) {
+    for (float lrate = 0.0003; lrate < 0.006; lrate += 0.0001) {
+        for (int factor = 10; factor < 100; factor+=10) {
             cout << "lrate: " << lrate << "\tfactor: " << factor << endl;
             BiasSVD biasSVD(rowCount, colCount, lrate, factor);
-            biasSVD.compute(sparseUBMatrix, sparseBUMatrix, 320, userMap, businessMap);
+            biasSVD.compute(sparseUBMatrix, sparseBUMatrix, 620, userMap, businessMap);
             biasSVD.predict(userMap, businessMap, testBusinessMap);
         }
     }

@@ -32,6 +32,7 @@ using namespace boost::property_tree;
 
 
 
+// 计算vector中元素的平均值
 float calculateVectorAvg(const vector<float> &vec)
 {
     if (vec.size() != 0) {
@@ -47,6 +48,7 @@ float calculateVectorAvg(const vector<float> &vec)
     }
 }
 
+// 计算vector中数据的均方差RMSE
 float calculateVectorRMSE(const vector<float> &vec, float avg)
 {
     if (vec.size() != 0)
@@ -65,13 +67,14 @@ float calculateVectorRMSE(const vector<float> &vec, float avg)
 }
 
 
+// 对数据集做一些简单的分析统计
 void analyzeDataSet()
 {
     set<string> trainingUserSet, testUserSet, testInTrainingUserSet;
     set<string> trainingBusiSet, testBusiSet, testInTrainingBusiSet;
     
     string trainingUserFileName = "/Users/jtang1/Desktop/2013/yelp_training_set/yelp_training_set_review.json";
-    string testUserFileName = "/Users/jtang1/Desktop/2013/yelp_test_set/yelp_test_set_review.json";
+    string testUserFileName = "/Users/jtang1/Desktop/2013/final_test_set/final_test_set_review.json";
     string line;
     ifstream finTraining = ifstream(trainingUserFileName);
     ifstream finTest = ifstream(testUserFileName);
@@ -140,6 +143,7 @@ void analyzeDataSet()
 }
 
 
+// 根据本地测试集计算RMSE
 float computeRMSE(const string &predictionFileName)
 {
     ifstream testReviewFile("/Users/jtang1/Desktop/test2013/sampleSubmission.csv");
@@ -168,35 +172,30 @@ float computeRMSE(const string &predictionFileName)
 }
 
 
+// 加载要预测的数据集
 void loadDataToPredict(multimap<string, string> &predictionUBMap, multimap<string, string> &predictionBUMap)
 {
-    ifstream submitionFile = ifstream(FolderName + "sampleSubmission.csv");
+    // ifstream submitionFile = ifstream(FolderName + "sampleSubmissionFinal.csv");
+    ifstream  testReviewFile = ifstream(FolderName + "final_test_set/final_test_set_review.json");
+    // 根据sampleSubmissionFinal.csv文件和final_test_set_review.json文件，
     // 将需要预测的数据读入predictionMap
-    if (submitionFile.is_open())
+    if (testReviewFile.is_open())
     {
         string line;
-        getline(submitionFile, line);
-        while (!submitionFile.eof())
+        while (!testReviewFile.eof())
         {
-            getline(submitionFile, line);
-#ifdef LocalTest
-            size_t start;
-            start = line.find("\"user_id\"");
-            string uid = line.substr(start+12, 22);
-            string bid = line.substr(line.length() - 24, 22);
-#else
-            string uid = line.substr(0, 22);
-            string bid = line.substr(23, 22);
-#endif
+            getline(testReviewFile, line);
+            string uid = line.substr(13, 22);
+            string bid = line.substr(93, 22);
             predictionUBMap.insert(make_pair(uid, bid));
             predictionBUMap.insert(make_pair(bid, uid));
         }
     }
     else
     {
-        cout << "can't open submitionFile" << endl;
+        cout << "can't open testReviewFile" << endl;
     }
-    submitionFile.close();
+    testReviewFile.close();
 }
 
 
@@ -239,6 +238,7 @@ void splitTrainingSet()
 }
 
 
+// 加载姓名性别文件
 void loadGenderFile(map<string, bool> &genderMap)
 {
     ifstream genderFile("/Users/jtang1/Desktop/2013/mf.txt");
@@ -265,6 +265,7 @@ void loadGenderFile(map<string, bool> &genderMap)
 }
 
 
+// 加载商家类别平均分文件
 void loadCategory(map<string, Category> &categoryMap)
 {
     ifstream categoryFile(StatisticsPath + "CateAvgStar.txt");
@@ -284,11 +285,11 @@ void loadCategory(map<string, Category> &categoryMap)
     }
 }
 
-
+// 加载测试集中的商家信息
 void loadTestBusiness(map<string, Business> &testBusinessMap, const map<string, Category> &categoryMap)
 {
     // load test_set_business to testBusinessMap
-    ifstream testSetBusinessFile(FolderName + "yelp_test_set/yelp_test_set_business.json");
+    ifstream testSetBusinessFile(FolderName + "final_test_set/final_test_set_business.json");
     if (testSetBusinessFile.is_open()) {
         while (!testSetBusinessFile.eof()) {
             vector<string> category;
@@ -324,7 +325,8 @@ void loadTestBusiness(map<string, Business> &testBusinessMap, const map<string, 
                 }
                 else
                 {
-                    cout << cate << endl;
+                    // 测试集中有部分商家类别不存在
+                    // cout << cate << endl;
                 }
             }
             if (totalStar == 0) {

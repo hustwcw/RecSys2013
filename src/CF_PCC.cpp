@@ -185,43 +185,27 @@ void PCC(const SparseMatrix<float> &sparseM,
 void UIPCC(const map<string, User> &userMap, const map<string, Business> &businessMap, float lamda)
 {
     stringstream predictionFileName;
+
     
-#ifdef LocalTest
-    ifstream submitionFile = ifstream("/Users/jtang1/Desktop/test2013/test_review.json");
-    predictionFileName << "/Users/jtang1/Desktop/test2013/prediction/prediction2_lamda_" << lamda << ".csv";
-#else
-    ifstream submitionFile = ifstream("/Users/jtang1/Desktop/2013/sampleSubmission.csv");
-    predictionFileName << "/Users/jtang1/Desktop/2013/prediction/prediction2_lamda_" << lamda << ".csv";
-#endif
+    ifstream  testReviewFile = ifstream(FolderName + "final_test_set/final_test_set_review.json");
+    predictionFileName << FolderName << "PCC/PCC_lamda_" << lamda << ".csv";
+
     
     ofstream predictionFile = ofstream(predictionFileName.str());
     // 根据result和UserMap、BusinessMap中的评分平均值计算最终的评分
-    if (submitionFile.is_open())
+    if (testReviewFile.is_open())
     {
         string line;
-        
-#ifndef LocalTest
-        predictionFile << "RecommendationId,Stars" << endl;
-        getline(submitionFile, line);
-#endif
-        int index = 0;
-        
+        predictionFile << "review_id,stars" << endl;
         int upccCount = 0;
         int ipccCount = 0;
-        
-        
-        while (!submitionFile.eof())
+        while (!testReviewFile.eof())
         {
-            getline(submitionFile, line);
-#ifdef LocalTest
-            size_t start;
-            start = line.find("\"user_id\"");
-            string uid = line.substr(start+12, 22);
-            string bid = line.substr(line.length() - 24, 22);
-#else
-            string uid = line.substr(0, 22);
-            string bid = line.substr(23, 22);
-#endif
+            getline(testReviewFile, line);
+            string uid = line.substr(13, 22);
+            string reviewid = line.substr(52, 22);
+            string bid = line.substr(93, 22);
+            
             map<string, User>::const_iterator userIter = userMap.find(uid);
             map<string, Business>::const_iterator businessIter = businessMap.find(bid);
             map<string, float>::iterator userResultIter = result.find(uid+bid);
@@ -313,24 +297,23 @@ void UIPCC(const map<string, User> &userMap, const map<string, Business> &busine
             if (prediction < 1) {
                 prediction = 1;
             }
-            predictionFile << ++index << "," << prediction << endl;
+            predictionFile << reviewid << "," << prediction << endl;
         }
         
-        //        cout << "UPCC Count: " << upccCount << "\tIPCC Count: " << ipccCount << endl;
+        cout << "UPCC Count: " << upccCount << "\tIPCC Count: " << ipccCount << endl;
     }
-    submitionFile.close();
+    testReviewFile.close();
     predictionFile.close();
-    
-#ifdef LocalTest
-    cout << "lamda=" << lamda << ": " << computeRMSE(predictionFileName.str()) << endl;
-#endif
 }
 
 
 
-void TestCFPCC(const SparseMatrix<float> &sparseUBMatrix, const SparseMatrix<float> &sparseBUMatrix,
-               map<string, User> &userMap, map<string, Business> &businessMap,
-               const multimap<string, string> &predictionUBMap, const multimap<string, string> &predictionBUMap)
+void TestCFPCC(const SparseMatrix<float> &sparseUBMatrix,
+               const SparseMatrix<float> &sparseBUMatrix,
+               map<string, User> &userMap,
+               map<string, Business> &businessMap,
+               const multimap<string, string> &predictionUBMap,
+               const multimap<string, string> &predictionBUMap)
 {
     vector<User> userVec(userMap.size());
     vector<Business> businessVec(businessMap.size());
@@ -350,8 +333,8 @@ void TestCFPCC(const SparseMatrix<float> &sparseUBMatrix, const SparseMatrix<flo
     PCC(sparseBUMatrix, businessMap, userMap, userVec, predictionBUMap); // IPCC
     
     float lamda = 0;
-    for (int i = 0; i < 19; ++i) {
-        lamda += 0.05;
+    for (int i = 0; i < 21; ++i) {
         UIPCC(userMap, businessMap, lamda);
+        lamda += 0.05;
     }
 }

@@ -10,7 +10,21 @@
 #define __RecSys2013__CF_PCC__
 
 #include <iostream>
+#include <map>
+#include "Util.h"
 
-void TestCFPCC();
+
+template<class T>
+class SparseMatrix;
+class User;
+class Business;
+
+
+void TestCFPCC(const SparseMatrix<float> &sparseUBMatrix,
+               const SparseMatrix<float> &sparseBUMatrix,
+               std::map<std::string, User> &userMap,
+               std::map<std::string, Business> &businessMap,
+               const std::multimap<std::string, std::string> &predictionUBMap,
+               const std::multimap<std::string, std::string> &predictionBUMap);
 
 #endif /* defined(__RecSys2013__CF_PCC__) */

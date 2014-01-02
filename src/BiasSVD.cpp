@@ -24,17 +24,17 @@ using namespace std;
 BiasSVD::BiasSVD(int uCount, int bCount, float lrate, int f)
 :lamda(0.0005), userCount(uCount), businessCount(bCount), learnRate(lrate), factor(f)
 {
-//    srand((unsigned int)clock());
+    // 根据经验，随机数需要和 1/sqrt(F) 成正比
     matrixP = new float[factor][UserSize];
     matrixQ = new float[factor][BusinessSize];
     for (int i = 0; i < factor; ++i) {
         for (int j = 0; j < UserSize; ++j) {
-            matrixP[i][j] = SmallRandom;
+            matrixP[i][j] = SmallRandom/sqrt(i+1.0);
         }
     }
     for (int i = 0; i < factor; ++i) {
         for (int j = 0; j < BusinessSize; ++j) {
-            matrixQ[i][j] = SmallRandom;
+            matrixQ[i][j] = SmallRandom/sqrt(i+1.0);
         }
     }
     for (int i = 0; i < UserSize; ++i) {
@@ -50,6 +50,7 @@ void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<
     int count = 0;
     float *term1 = new float[factor];
     float tempLearnRate = learnRate;
+    float oldLoss = INTMAX_MAX;
     while(count < maxIterCount)   //只要其中一个条件不满足就停止
     {
         float derivativeUbias = 0;
@@ -121,41 +122,46 @@ void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<
             }
         }
         
-        // 计算RMSE
-//        float sum = 0;
-//        for (int index = 0; index < starMatrix.tu; ++index) {
-//            float temp = 0;
-//            int row = starMatrix.data[index].i;
-//            int col = starMatrix.data[index].j;
-//            for (int i = 0; i < factor; ++i) {
-//                temp += (matrixP[i][row] * matrixQ[i][col]);
-//            }
-//            temp += (GlobalAvg + ubias[row] + bbias[col]);
-//            sum += (temp - starMatrix.data[index].elem) * (temp - starMatrix.data[index].elem);
-//        }
-//        
-//        float sumP = 0;
-//        float sumQ = 0;
-//        for (int i = 0; i < factor; ++i) {
-//            for (int j = 0; j < userCount; ++j) {
-//                sumP += (matrixP[i][j] * matrixP[i][j]);
-//            }
-//            for (int j = 0; j < businessCount; ++j) {
-//                sumQ += (matrixQ[i][j] * matrixQ[i][j]);
-//            }
-//        }
+        
+        
+        
+        // 计算损失函数
+        float sum = 0;
+        for (int index = 0; index < starMatrix.tu; ++index) {
+            float temp = 0;
+            int row = starMatrix.data[index].i;
+            int col = starMatrix.data[index].j;
+            for (int i = 0; i < factor; ++i) {
+                temp += (matrixP[i][row] * matrixQ[i][col]);
+            }
+            temp += (GlobalAvg + ubias[row] + bbias[col]);
+            sum += (temp - starMatrix.data[index].elem) * (temp - starMatrix.data[index].elem);
+        }
+        
+        float sumP = 0;
+        float sumQ = 0;
+        for (int i = 0; i < factor; ++i) {
+            for (int j = 0; j < userCount; ++j) {
+                sumP += (matrixP[i][j] * matrixP[i][j]);
+            }
+            for (int j = 0; j < businessCount; ++j) {
+                sumQ += (matrixQ[i][j] * matrixQ[i][j]);
+            }
+        }
+        float loss = sum + lamda*(sumP+sumQ);
+        if(loss < oldLoss) // 损失越来越小
+        {
+            cout << count << ":\t" << loss << endl;
+            oldLoss = loss;
+        }
+        else
+        {
+            break;
+        }
 //        float midRMSE = sqrt(sum/starMatrix.tu);
-////        if (midRMSE < 1.0) {
+//        if (midRMSE < 1.0) {
 //            cout << count << ":\t" << midRMSE << "\t" << (midRMSE + lamda*(sumP + sumQ)) << endl;
-////        }
-    
-#ifdef LocalTest
-//        if ((count % 10 == 0)) {
-//            cout << count << "\t";
-//            map<string, Business> testBusinessMap;
-//            predict(userMap, businessMap, testBusinessMap);
 //        }
-#endif
         
 //        tempLearnRate *= 0.999;
         ++count;
@@ -169,36 +175,26 @@ void BiasSVD::predict(const map<string, User> &userMap, const map<string, Busine
 {
     stringstream predictionFileName;
     
-    ifstream submitionFile = ifstream(FolderName + "sampleSubmission.csv");
+    ifstream  testReviewFile = ifstream(FolderName + "final_test_set/final_test_set_review.json");
     predictionFileName << FolderName + "BiasSVD/BiasSVD_lrate" << learnRate << "_factor" << factor << "_iter" << iterCount << ".csv";
     
     ofstream predictionFile = ofstream(predictionFileName.str());
     // 根据result和UserMap、BusinessMap中的评分平均值计算最终的评分
-    if (submitionFile.is_open())
+    if (testReviewFile.is_open())
     {
         string line;
         
-#ifndef LocalTest
-        predictionFile << "RecommendationId,Stars" << endl;
-        getline(submitionFile, line);
-#endif
-        int index = 0;
+        predictionFile << "review_id,stars" << endl;
         int lfmCount = 0;
         int userAvgCount = 0;
         int businessAvgCount = 0;
         int globalCount = 0;
-        while (!submitionFile.eof())
+        while (!testReviewFile.eof())
         {
-            getline(submitionFile, line);
-#ifdef LocalTest
-            size_t start;
-            start = line.find("\"user_id\"");
-            string uid = line.substr(start+12, 22);
-            string bid = line.substr(line.length() - 24, 22);
-#else
-            string uid = line.substr(0, 22);
-            string bid = line.substr(23, 22);
-#endif
+            getline(testReviewFile, line);
+            string uid = line.substr(13, 22);
+            string reviewid = line.substr(52, 22);
+            string bid = line.substr(93, 22);
             map<string, User>::const_iterator userIter = userMap.find(uid);
             map<string, Business>::const_iterator businessIter = businessMap.find(bid);
             float prediction = 0;
@@ -246,14 +242,14 @@ void BiasSVD::predict(const map<string, User> &userMap, const map<string, Busine
             if (prediction < 1) {
                 prediction = 1;
             }
-            predictionFile << ++index << "," << prediction << endl;
+            predictionFile << reviewid << "," << prediction << endl;
         }
         cout << "LFM Count:" << lfmCount << "\tUser Avg Count:" << userAvgCount << "\tBusiness Avg Count:" << businessAvgCount << "\tGlobal Count:" << globalCount << endl;
     }
-    submitionFile.close();
+    testReviewFile.close();
     predictionFile.close();
     
-#ifdef LocalTest
-    cout << "RMSE:\t" << computeRMSE(predictionFileName.str()) << endl;
-#endif
+//#ifdef LocalTest
+//    cout << "RMSE:\t" << computeRMSE(predictionFileName.str()) << endl;
+//#endif
 }
