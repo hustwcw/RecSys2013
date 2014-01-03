@@ -325,11 +325,11 @@ int main(int argc, const char * argv[])
 //    return 0;
     
 
-    for (float lrate = 0.0003; lrate < 0.006; lrate += 0.0001) {
-        for (int factor = 10; factor < 100; factor+=10) {
+    for (float lrate = 0.0004; lrate < 0.0005; lrate += 0.0001) {
+        for (int factor = 20; factor < 100; factor+=100) {
             cout << "lrate: " << lrate << "\tfactor: " << factor << endl;
             BiasSVD biasSVD(rowCount, colCount, lrate, factor);
-            biasSVD.compute(sparseUBMatrix, sparseBUMatrix, 620, userMap, businessMap);
+            biasSVD.compute(sparseUBMatrix, sparseBUMatrix, 1000, userMap, businessMap);
             biasSVD.predict(userMap, businessMap, testBusinessMap);
         }
     }

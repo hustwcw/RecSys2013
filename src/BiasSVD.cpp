@@ -22,7 +22,7 @@ using namespace std;
 
 
 BiasSVD::BiasSVD(int uCount, int bCount, float lrate, int f)
-:lamda(0.0005), userCount(uCount), businessCount(bCount), learnRate(lrate), factor(f)
+:lamda(0.001), userCount(uCount), businessCount(bCount), learnRate(lrate), factor(f)
 {
     // 根据经验，随机数需要和 1/sqrt(F) 成正比
     matrixP = new float[factor][UserSize];
@@ -51,7 +51,7 @@ void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<
     float *term1 = new float[factor];
     float tempLearnRate = learnRate;
     float oldLoss = INTMAX_MAX;
-    while(count < maxIterCount)   //只要其中一个条件不满足就停止
+    while(count < maxIterCount)   //只要其中一个条件不满足就停止迭代
     {
         float derivativeUbias = 0;
         float derivativeBbias = 0;
@@ -123,10 +123,8 @@ void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<
         }
         
         
-        
-        
         // 计算损失函数
-        float sum = 0;
+        float sum = 0.0;
         for (int index = 0; index < starMatrix.tu; ++index) {
             float temp = 0;
             int row = starMatrix.data[index].i;
@@ -135,7 +133,7 @@ void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<
                 temp += (matrixP[i][row] * matrixQ[i][col]);
             }
             temp += (GlobalAvg + ubias[row] + bbias[col]);
-            sum += (temp - starMatrix.data[index].elem) * (temp - starMatrix.data[index].elem);
+            sum += (temp - starMatrix.data[index].elem) * (temp - starMatrix.data[index].elem)*1.0;
         }
         
         float sumP = 0;
@@ -158,12 +156,6 @@ void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<
         {
             break;
         }
-//        float midRMSE = sqrt(sum/starMatrix.tu);
-//        if (midRMSE < 1.0) {
-//            cout << count << ":\t" << midRMSE << "\t" << (midRMSE + lamda*(sumP + sumQ)) << endl;
-//        }
-        
-//        tempLearnRate *= 0.999;
         ++count;
     }//while(...)
     delete [] term1;
@@ -176,7 +168,7 @@ void BiasSVD::predict(const map<string, User> &userMap, const map<string, Busine
     stringstream predictionFileName;
     
     ifstream  testReviewFile = ifstream(FolderName + "final_test_set/final_test_set_review.json");
-    predictionFileName << FolderName + "BiasSVD/BiasSVD_lrate" << learnRate << "_factor" << factor << "_iter" << iterCount << ".csv";
+    predictionFileName << FolderName + "BiasSVD/BiasSVD_lamda" << lamda << "_lrate" << learnRate << "_factor" << factor << "_iter" << iterCount << ".csv";
     
     ofstream predictionFile = ofstream(predictionFileName.str());
     // 根据result和UserMap、BusinessMap中的评分平均值计算最终的评分
