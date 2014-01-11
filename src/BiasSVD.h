@@ -35,8 +35,12 @@ public:
     BiasSVD(int uCount, int bCount, float learnRate, int f);
     
     
-    void compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<float> &transposeStarMatrix, const int maxIterCount, const std::map<std::string, User> &userMap, const std::map<std::string, Business> &businessMap);
+    void compute(const SparseMatrix<std::pair<float, int> > &starMatrix,
+                 const SparseMatrix<std::pair<float, int> > &transposeStarMatrix,
+                 const int maxIterCount);
+    
     void predict(const std::map<std::string, User> &userMap, const std::map<std::string, Business> &businessMap, const std::map<std::string, Business> &testBusinessMap);
+    
     ~BiasSVD()
     {
         delete [] matrixP;

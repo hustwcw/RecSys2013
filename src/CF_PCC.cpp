@@ -44,7 +44,7 @@ map<string, float> result;  // 评分预测结果，key为uid与bid的连接
 
 
 template<class T, class V>
-void PCC(const SparseMatrix<float> &sparseM,
+void PCC(const SparseMatrix<std::pair<float, int> > &sparseM,
          map<string, T> &rowMap,
          const map<string, V> &colMap,
          const vector<V> &colVec,
@@ -82,8 +82,8 @@ void PCC(const SparseMatrix<float> &sparseM,
             for (; i < sparseM.rpos[row1+1] && j < sparseM.rpos[row2+1]; ) {
                 if (sparseM.data[i].j == sparseM.data[j].j) {
                     // 列号相同，计算相似度
-                    float tempa = sparseM.data[i].elem - userIter1->second.avgStar;
-                    float tempu = sparseM.data[j].elem - userIter2->second.avgStar;
+                    float tempa = sparseM.data[i].elem.first - userIter1->second.avgStar;
+                    float tempu = sparseM.data[j].elem.first - userIter2->second.avgStar;
                     //                    float tempa = sparseM.data[i].elem - colVec[sparseM.data[i].j].avgStar;
                     //                    float tempu = sparseM.data[j].elem - colVec[sparseM.data[i].j].avgStar;
                     // 需要实验确定对数的底是2好还是10好
@@ -151,7 +151,7 @@ void PCC(const SparseMatrix<float> &sparseM,
             for (map<string, float>::iterator simIter = simMap.begin(); simIter != simMap.end(); ++simIter) {
                 typename map<string, T>::iterator userIter = rowMap.find(simIter->first);
                 int row = userIter->second.sequence;
-                float uaStar = sparseM.getElem(row, col);
+                float uaStar = sparseM.getElem(row, col).first;
                 // 有相似度的用户对于该要预测的商家没有过review
                 if (uaStar <= 0) {
                     continue;
@@ -308,8 +308,8 @@ void UIPCC(const map<string, User> &userMap, const map<string, Business> &busine
 
 
 
-void TestCFPCC(const SparseMatrix<float> &sparseUBMatrix,
-               const SparseMatrix<float> &sparseBUMatrix,
+void TestCFPCC(const SparseMatrix<std::pair<float, int> > &sparseUBMatrix,
+               const SparseMatrix<std::pair<float, int> > &sparseBUMatrix,
                map<string, User> &userMap,
                map<string, Business> &businessMap,
                const multimap<string, string> &predictionUBMap,

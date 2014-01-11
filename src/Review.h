@@ -16,9 +16,9 @@ struct Review {
     std::string uid;
     std::string bid;
     float star;
-    
-    Review(std::string u, std::string b, float s)
-    :uid(u), bid(b), star(s)
+    int date; // 评分时间，以从公元元年到当前日期经过的天数计算，按每年365天，每月30天计算。
+    Review(std::string u, std::string b, float s, int d)
+    :uid(u), bid(b), star(s), date(d)
     {}
     
     bool operator < (const Review &other) const

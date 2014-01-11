@@ -20,8 +20,8 @@ class User;
 class Business;
 
 
-void TestCFPCC(const SparseMatrix<float> &sparseUBMatrix,
-               const SparseMatrix<float> &sparseBUMatrix,
+void TestCFPCC(const SparseMatrix<std::pair<float, int> > &sparseUBMatrix,
+               const SparseMatrix<std::pair<float, int> > &sparseBUMatrix,
                std::map<std::string, User> &userMap,
                std::map<std::string, Business> &businessMap,
                const std::multimap<std::string, std::string> &predictionUBMap,

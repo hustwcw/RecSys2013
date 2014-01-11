@@ -57,6 +57,11 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
             string bid = line.substr(line.length() - 24, 22);
             start = line.find("\"stars\"", 124);
             int stars = atoi(line.substr(start+9, 1).c_str());
+            start = line.find("\"date\":", 124);
+            int year = atoi(line.substr(start+9, 4).c_str());
+            int month = atoi(line.substr(start+14, 2).c_str());
+            int day = atoi(line.substr(start+17, 2).c_str());
+            int date = year*365+month*30+day;
             // 判断用户id是否已经出现在userMap中，如果没有则将新出现的用户数据插入到userMap中
             // 否则，修改userMap中对应的用户数据（reviewCount和平均分）
             map<string, User>::iterator userIter = userMap.find(uid);
@@ -80,7 +85,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
                 businessIter->second.starVec.push_back(stars);
             }
             
-            reviewSet.insert(Review(uid, bid, stars));
+            reviewSet.insert(Review(uid, bid, stars, date));
         }
     }
     else
@@ -257,7 +262,7 @@ void loadTrainingSet(map<string, User> &userMap, map<string, Business> &business
 }
 
 
-void generateMatrix(SparseMatrix<float> &sparseM, const map<string, User> &userMap, const map<string, Business> &businessMap, const set<Review> &reviewSet)
+void generateMatrix(SparseMatrix<std::pair<float, int> > &sparseM, const map<string, User> &userMap, const map<string, Business> &businessMap, const set<Review> &reviewSet)
 {
     // 根据reviewSet生成稀疏矩阵
     int index = 0;
@@ -268,7 +273,7 @@ void generateMatrix(SparseMatrix<float> &sparseM, const map<string, User> &userM
             sparseM.rpos[row] = index;
         }
         int col = businessMap.find(iter->bid)->second.sequence;
-		sparseM.data[index++] = Triple<float>(row, col, iter->star);
+		sparseM.data[index++] = Triple<std::pair<float, int> >(row, col, make_pair(iter->star, iter->date));
         lastRow = row;
     }
     sparseM.rpos[lastRow+1] = index;
@@ -300,15 +305,15 @@ int main(int argc, const char * argv[])
     // 生成稀疏矩阵
     int rowCount = static_cast<int>(userMap.size());
     int colCount = static_cast<int>(businessMap.size());
-    SparseMatrix<float> sparseUBMatrix(static_cast<int>(reviewSet.size()), rowCount, colCount);
-    SparseMatrix<float> sparseBUMatrix(static_cast<int>(reviewSet.size()), colCount, rowCount);
+    SparseMatrix<std::pair<float, int> > sparseUBMatrix(static_cast<int>(reviewSet.size()), rowCount, colCount);
+    SparseMatrix<std::pair<float, int> > sparseBUMatrix(static_cast<int>(reviewSet.size()), colCount, rowCount);
     generateMatrix(sparseUBMatrix, userMap, businessMap, reviewSet);
     sparseUBMatrix.transposeMatrix(sparseBUMatrix);
     
     
     // 测试协同过滤算法
-//    TestCFPCC(sparseUBMatrix, sparseBUMatrix, userMap, businessMap, predictionUBMap, predictionBUMap);
-//    return 0;
+    TestCFPCC(sparseUBMatrix, sparseBUMatrix, userMap, businessMap, predictionUBMap, predictionBUMap);
+    return 0;
     
     
 //    for (float lrate = 0.00045; lrate < 0.00046; lrate += 0.00005) {
@@ -325,11 +330,11 @@ int main(int argc, const char * argv[])
 //    return 0;
     
 
-    for (float lrate = 0.0004; lrate < 0.0005; lrate += 0.0001) {
+    for (float lrate = 0.0004; lrate < 0.0005; lrate += 0.0002) {
         for (int factor = 20; factor < 100; factor+=100) {
             cout << "lrate: " << lrate << "\tfactor: " << factor << endl;
             BiasSVD biasSVD(rowCount, colCount, lrate, factor);
-            biasSVD.compute(sparseUBMatrix, sparseBUMatrix, 1000, userMap, businessMap);
+            biasSVD.compute(sparseUBMatrix, sparseBUMatrix, 1000);
             biasSVD.predict(userMap, businessMap, testBusinessMap);
         }
     }

@@ -23,7 +23,7 @@
 //#define LocalTest
 
 
-#define INIT_VARIANCE   0.05          // variance range from the INIT_SEED value
+#define INIT_VARIANCE   0.0005          // variance range from the INIT_SEED value
 #define SmallRandom ((2.0*(rand()/(float)(RAND_MAX)) - 1.0)*INIT_VARIANCE) // meaning: rand[-INIT_VARIANCE, +INIT_VARIANCE]
 
 #define DataPath    string("/Users/jtang1/Documents/Github/RecSys2013/Data/")

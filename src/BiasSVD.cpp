@@ -45,7 +45,9 @@ BiasSVD::BiasSVD(int uCount, int bCount, float lrate, int f)
     }
 }
 
-void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<float> &transposeStarMatrix, const int maxIterCount, const map<string, User> &userMap, const map<string, Business> &businessMap)
+void BiasSVD::compute(const SparseMatrix<std::pair<float, int> > &starMatrix,
+                      const SparseMatrix<std::pair<float, int> > &transposeStarMatrix,
+                      const int maxIterCount)
 {    
     int count = 0;
     float *term1 = new float[factor];
@@ -67,7 +69,7 @@ void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<
                 temp += (matrixP[k][row] * matrixQ[k][col]);
             }
             temp += (GlobalAvg + ubias[row] + bbias[col]);
-            temp -= starMatrix.data[index].elem;
+            temp -= starMatrix.data[index].elem.first;
             for (int i = 0; i < factor; ++i) {
                 term1[i] += (temp * matrixQ[i][col]);
             }
@@ -101,7 +103,7 @@ void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<
                 temp += (matrixP[k][col] * matrixQ[k][row]);
             }
             temp += (GlobalAvg + ubias[col] + bbias[row]);
-            temp -= transposeStarMatrix.data[index].elem;
+            temp -= transposeStarMatrix.data[index].elem.first;
             for (int i = 0; i < factor; ++i) {
                 term1[i] += (temp * matrixP[i][col]);
             }
@@ -133,7 +135,7 @@ void BiasSVD::compute(const SparseMatrix<float> &starMatrix, const SparseMatrix<
                 temp += (matrixP[i][row] * matrixQ[i][col]);
             }
             temp += (GlobalAvg + ubias[row] + bbias[col]);
-            sum += (temp - starMatrix.data[index].elem) * (temp - starMatrix.data[index].elem)*1.0;
+            sum += (temp - starMatrix.data[index].elem.first) * (temp - starMatrix.data[index].elem.first)*1.0;
         }
         
         float sumP = 0;

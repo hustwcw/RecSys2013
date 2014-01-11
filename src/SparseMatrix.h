@@ -13,7 +13,7 @@ template <class T>
 struct Triple{
     int i, j;
     T elem;
-	Triple():i(0), j(0), elem(0){}
+	Triple():i(0), j(0){}
 	Triple(int row, int col, const T &value)
 		:i(row), j(col), elem(value)
 	{}
@@ -53,7 +53,7 @@ public:
             mid = (start + end)/2;
         }
         
-        return (data[mid].j == col) ? data[mid].elem : T(0);
+        return (data[mid].j == col) ? data[mid].elem : T();
     }
     
     void transposeMatrix(SparseMatrix &otherMatrix) const
