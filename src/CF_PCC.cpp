@@ -48,7 +48,8 @@ void PCC(const SparseMatrix<std::pair<float, int> > &sparseM,
          map<string, T> &rowMap,
          const map<string, V> &colMap,
          const vector<V> &colVec,
-         const multimap<string, string> &predictionMap)
+         const multimap<string, string> &predictionMap,
+         int flag)
 {
     int insertSimCount = 0;
     int discardSimCount = 0;
@@ -89,7 +90,17 @@ void PCC(const SparseMatrix<std::pair<float, int> > &sparseM,
                     // 需要实验确定对数的底是2好还是10好
                     //                    assert(colVec[sparseM.data[i].j].sequence == sparseM.data[i].j);
                     //                    float popWeight = 1.0/log(1.0 + colVec[sparseM.data[i].j].reviewCount); // 对热门商品进行惩罚的权值 1/log(1+N(i))
-                    nominator += tempa * tempu; // * popWeight; 该权重不能提高预测的准确度
+                    float attenuation = 1.0;
+                    int deltaT = abs(sparseM.data[i].elem.second-sparseM.data[j].elem.second);
+                    if(flag == 1) // 相似度计算阶段融入静态衰减函数
+                    {
+                        attenuation = 2.0*exp(-0.001*deltaT)/(1+exp(-0.01*deltaT));
+                    }
+                    else if(flag == 2) // 相似度计算阶段融入动态衰减函数
+                    {
+                        attenuation = 1.0/(1+0.001*deltaT);
+                    }
+                    nominator += tempa * tempu * attenuation; // * popWeight; 该权重不能提高预测的准确度
                     denominator1 += tempa * tempa;
                     denominator2 += tempu * tempu;
                     intersectCount++;
@@ -329,8 +340,8 @@ void TestCFPCC(const SparseMatrix<std::pair<float, int> > &sparseUBMatrix,
         }
     }
     
-    PCC(sparseUBMatrix, userMap, businessMap, businessVec, predictionUBMap); // UPCC
-    PCC(sparseBUMatrix, businessMap, userMap, userVec, predictionBUMap); // IPCC
+    PCC(sparseUBMatrix, userMap, businessMap, businessVec, predictionUBMap, 2); // UPCC
+    PCC(sparseBUMatrix, businessMap, userMap, userVec, predictionBUMap, 0); // IPCC
     
     float lamda = 0;
     for (int i = 0; i < 21; ++i) {
